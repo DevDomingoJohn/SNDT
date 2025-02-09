@@ -1,4 +1,4 @@
-package com.domin.sndt
+package com.domin.sndt.core
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
