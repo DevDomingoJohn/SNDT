@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,15 +34,18 @@ class ScanVM @Inject constructor(
     }
 
     fun test() {
-        viewModelScope.launch {
-            val ip = networkInterfaceRepository.getLocalIp()!!
-            val subnet = networkInterfaceRepository.getSubnet()!!
+        viewModelScope.launch(Dispatchers.IO) {
+            val localIp = networkInterfaceRepository.getLocalIp()!!
+            val subnetMask = networkInterfaceRepository.getSubnet()!!
 
-            val ipv4Regex = "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\$"
-            if (ip.contains(Regex(ipv4Regex))) {
-                Log.i("SCANVM","$ip is IPv4")
-                Log.i("SCANVM","$ip subnet is $subnet")
-            }
+            val networkAddress = networkInterfaceRepository.calculateNetworkAddress(localIp,subnetMask)
+            val broadcastAddress = networkInterfaceRepository.calculateBroadcastAddress(networkAddress,subnetMask)
+
+            Log.i("ScanVM","Network Address: $networkAddress")
+            Log.i("ScanVM","Broadcast Address: $broadcastAddress")
+
+            networkInterfaceRepository.integerToInetAddress(networkAddress)
+            networkInterfaceRepository.integerToInetAddress(broadcastAddress)
         }
     }
 }
