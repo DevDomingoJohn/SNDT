@@ -46,6 +46,9 @@ class ScanVM @Inject constructor(
 
             networkInterfaceRepository.integerToInetAddress(networkAddress)
             networkInterfaceRepository.integerToInetAddress(broadcastAddress)
+
+            val listDevices = networkInterfaceRepository.getDevices(networkAddress,broadcastAddress)
+            Log.i("Online Devices","Reachable Devices: $listDevices")
         }
     }
 }

@@ -1,11 +1,17 @@
 package com.domin.sndt.core.network
 
+import android.net.Network
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
+import com.domin.sndt.scan.Device
 import java.net.InetAddress
 import java.net.NetworkInterface
+import java.util.HexFormat
 
 class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
+    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override suspend fun getLocalIp(): String? {
         val networkInterfaces = NetworkInterface.getNetworkInterfaces()
 
@@ -16,6 +22,15 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
             while (addresses.hasMoreElements()) {
                 val address = addresses.nextElement()
                 if (!address.isLoopbackAddress && address.hostAddress?.contains('.') == true) { // Check for IPv4 and non-loopback
+                    Log.i("Hostname",address.hostName)
+                    val netInterface = NetworkInterface.getByInetAddress(address)
+                    val macAddressBytes = netInterface.hardwareAddress
+                    val macAddressHex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                        HexFormat.ofDelimiter(":").formatHex(macAddressBytes)
+                    } else {
+                        macAddressBytes.joinToString(":") { String.format("%02X", it) }
+                    }
+                    Log.i("Mac",macAddressHex)
                     return address.hostAddress
                 }
             }
@@ -30,6 +45,7 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         while (networkInterfaces.hasMoreElements()) {
             val networkInterface = networkInterfaces.nextElement()
             val interfaceAddresses = networkInterface.interfaceAddresses
+            networkInterface.hardwareAddress
 
             for (interfaceAddress in interfaceAddresses) {
                 val address = interfaceAddress.address
@@ -89,5 +105,28 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         val address = InetAddress.getByAddress(ipBytes)
         val ip = address.hostAddress!!
         Log.i("RepositoryImpl",ip)
+    }
+
+    fun integerToAddress(ipInt: Int): InetAddress {
+        val ipBytes = ByteArray(4)
+        for (i in 0..3) {
+            ipBytes[i] = (ipInt shr (8 * (3 - i))).toByte()
+        }
+        return InetAddress.getByAddress(ipBytes)
+    }
+
+    override suspend fun getDevices(networkAddressInt: Int, broadcastAddressInt: Int): List<Device> {
+        val deviceList = mutableListOf<Device>()
+        Log.i("RepositoryImpl","Network Scanning...")
+        for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
+            val address = integerToAddress(ipInt)
+            Log.i("InetAddress","Checking ${address.hostAddress!!}!")
+            if (address.isReachable(50)) {
+                Log.i("RepositoryImpl","${address.hostAddress!!} is reachable!")
+                deviceList.add(Device(address.hostName,address.hostAddress!!,"IDK"))
+            }
+        }
+
+        return deviceList
     }
 }
