@@ -16,7 +16,10 @@ fun DeviceItem(device: Device) {
             .fillMaxWidth()
             .padding(16.dp)
     ) {
-        Text(text = device.hostname, fontWeight = FontWeight.Bold)
+        Text(
+            text = device.hostname ?: "Generic",
+            fontWeight = FontWeight.Bold
+        )
         Text(text = "IP: ${device.ipAddress}")
         Text(text = "MAC: ${device.macAddress}")
     }

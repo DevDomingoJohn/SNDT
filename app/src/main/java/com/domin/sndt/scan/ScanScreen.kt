@@ -37,18 +37,12 @@ fun ScanScreen(vm: ScanVM = viewModel()) {
                 )
             )
     ) {
-        val deviceList = listOf(
-            Device("Device 1", "192.168.1.1", "AA:BB:CC:DD:EE:FF"),
-            Device("Device 2", "192.168.1.2", "11:22:33:44:55:66"),
-            Device("Device 3", "10.0.0.1", "FF:EE:DD:CC:BB:AA")
-        )
-
         LazyColumn(
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth()
         ) {
-            items(deviceList) { device ->
+            items(state) { device ->
                 DeviceItem(device)
                 HorizontalDivider()
             }
@@ -64,9 +58,3 @@ fun ScanScreen(vm: ScanVM = viewModel()) {
     }
 
 }
-
-//@Preview(showBackground = true, showSystemUi = true)
-//@Composable
-//fun DefaultPreview() {
-//    ScanScreen()
-//}
