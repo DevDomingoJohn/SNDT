@@ -1,6 +1,8 @@
 package com.domin.sndt.scan
 
+import android.app.Application
 import android.util.Log
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.domin.sndt.core.domain.NetworkInterfaceRepository

@@ -1,11 +1,15 @@
 package com.domin.sndt.core.network
 
+import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.net.Inet4Address
 import java.net.InetAddress
+import java.net.InterfaceAddress
 import java.net.NetworkInterface
 import java.util.HexFormat
 
@@ -21,7 +25,6 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
             while (addresses.hasMoreElements()) {
                 val address = addresses.nextElement()
                 if (!address.isLoopbackAddress && address.hostAddress?.contains('.') == true) { // Check for IPv4 and non-loopback
-                    Log.i("Hostname",address.hostName)
                     return address.hostAddress
                 }
             }
@@ -30,7 +33,35 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         return null
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    override suspend fun getSubnet(): String? {
+        val networkInterfaces = NetworkInterface.getNetworkInterfaces()
+
+        while (networkInterfaces.hasMoreElements()) {
+            val networkInterface = networkInterfaces.nextElement()
+            Log.d("SubnetDebug", "Interface: ${networkInterface.displayName}, Name: ${networkInterface.name}, isUp: ${networkInterface.isUp}")
+
+            if (networkInterface.displayName == "wlan0") {
+                val interfaceAddresses = networkInterface.interfaceAddresses
+                for (interfaceAddress in interfaceAddresses) {
+                    val address = interfaceAddress.address
+                    Log.d("SubnetDebug", "  Address: ${address.hostAddress}, Type: ${address::class.java.simpleName}")
+
+                    if (address is Inet4Address) {
+                        val prefixLength = interfaceAddress.networkPrefixLength
+                        Log.d("SubnetDebug", "  Prefix Length: $prefixLength")
+                        val subnetMask = prefixLengthToSubnetMask(prefixLength)
+                        Log.d("SubnetDebug", "  Subnet Mask: $subnetMask")
+                        return subnetMask
+                    }
+                }
+            }
+        }
+
+        return null
+    }
+
+
+    @SuppressLint("NewApi")
     private fun getMacAddress(inetAddress: InetAddress): String? {
         val netInterface = NetworkInterface.getByInetAddress(inetAddress) ?: return null
         val macAddressBytes = netInterface.hardwareAddress
@@ -42,28 +73,6 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         }
         Log.i("Mac",macAddressHex)
         return macAddressHex
-    }
-
-    override suspend fun getSubnet(): String? {
-        val networkInterfaces = NetworkInterface.getNetworkInterfaces()
-
-        while (networkInterfaces.hasMoreElements()) {
-            val networkInterface = networkInterfaces.nextElement()
-            val interfaceAddresses = networkInterface.interfaceAddresses
-            networkInterface.hardwareAddress
-
-            for (interfaceAddress in interfaceAddresses) {
-                val address = interfaceAddress.address
-                val prefixLength = interfaceAddress.networkPrefixLength
-
-                if (address.hostAddress?.contains('.') == true) {
-                    val subnetMask = prefixLengthToSubnetMask(prefixLength)
-                    return subnetMask
-                }
-            }
-        }
-
-        return null
     }
 
     private fun calculateNetworkAddress(localIp: String, subnetMask: String): Int {
@@ -110,7 +119,6 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         return InetAddress.getByAddress(ipBytes)
     }
 
-    @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     override suspend fun scanNetwork(deviceReached: (Device) -> Unit): List<Device> {
         val localIp = getLocalIp()!!
         val subnetMask = getSubnet()!!
@@ -121,7 +129,10 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         val deviceList = mutableListOf<Device>()
         for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
             val address = integerToInetAddress(ipInt)
-            if (address.isReachable(50)) {
+
+            if (withContext(Dispatchers.IO) {
+                    address.isReachable(1000)
+                }) {
                 val hostAddress = address.hostAddress!!
                 val macAddress: String? = getMacAddress(address)
                 val hostName: String? = if (address.hostName != hostAddress) address.hostName else null
