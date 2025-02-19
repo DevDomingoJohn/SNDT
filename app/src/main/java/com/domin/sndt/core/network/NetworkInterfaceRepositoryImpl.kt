@@ -7,6 +7,10 @@ import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import java.io.BufferedReader
+import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.InterfaceAddress
@@ -62,17 +66,47 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
 
 
     @SuppressLint("NewApi")
-    private fun getMacAddress(inetAddress: InetAddress): String? {
-        val netInterface = NetworkInterface.getByInetAddress(inetAddress) ?: return null
-        val macAddressBytes = netInterface.hardwareAddress
+    private suspend fun getMacAddress(ipAddress: String): String? {
+        var mac: String? = null
+        withContext(Dispatchers.IO) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                try {
+                    val execution = Runtime.getRuntime().exec("ip neigh")
+                    execution.waitFor()
+                    execution.inputStream.bufferedReader().use { reader ->
+                        reader.forEachLine {
+                            val line = it.split(Regex("\\s+"))
 
-        val macAddressHex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            HexFormat.ofDelimiter(":").formatHex(macAddressBytes)
-        } else {
-            macAddressBytes.joinToString(":") { String.format("%02X", it) }
+                            if (line[0] == ipAddress) {
+                                mac = line[4]
+                                return@forEachLine
+                            }
+                        }
+                    }
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                }
+            } else {
+                val file = File("/proc/net/arp")
+                if (!file.exists() || !file.canRead()) {
+                    Log.i("getMacAddress","Filepath doesn't exists or cannot be read.")
+                }
+                file.bufferedReader().use { reader ->
+                    reader.forEachLine { Log.i("getMacAddress",it) }
+                }
+            }
         }
-        Log.i("Mac",macAddressHex)
-        return macAddressHex
+        return mac
+//        val netInterface = NetworkInterface.getByInetAddress(inetAddress) ?: return null
+//        val macAddressBytes = netInterface.hardwareAddress
+//
+//        val macAddressHex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+//            HexFormat.ofDelimiter(":").formatHex(macAddressBytes)
+//        } else {
+//            macAddressBytes.joinToString(":") { String.format("%02X", it) }
+//        }
+//        Log.i("Mac",macAddressHex)
+//        return macAddressHex
     }
 
     private fun calculateNetworkAddress(localIp: String, subnetMask: String): Int {
@@ -100,6 +134,7 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         return networkAddressInt or invertedMaskInt
     }
 
+    @SuppressLint("DefaultLocale")
     private fun prefixLengthToSubnetMask(prefixLength: Short): String {
         val mask = 0xFFFFFFFFL shl (32 - prefixLength)
         return String.format(
@@ -126,6 +161,8 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         val networkAddressInt = calculateNetworkAddress(localIp,subnetMask)
         val broadcastAddressInt = calculateBroadcastAddress(networkAddressInt,subnetMask)
 
+
+
         val deviceList = mutableListOf<Device>()
         for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
             val address = integerToInetAddress(ipInt)
@@ -134,9 +171,10 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
                     address.isReachable(1000)
                 }) {
                 val hostAddress = address.hostAddress!!
-                val macAddress: String? = getMacAddress(address)
+//                val macAddress: String? = getMacAddress(address)
                 val hostName: String? = if (address.hostName != hostAddress) address.hostName else null
 
+                val macAddress = getMacAddress(hostAddress)
                 deviceReached(Device(hostName,hostAddress,macAddress))
                 deviceList.add(Device(hostName,hostAddress,macAddress))
             }
