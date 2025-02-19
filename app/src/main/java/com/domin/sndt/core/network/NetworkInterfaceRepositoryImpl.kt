@@ -7,15 +7,11 @@ import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import java.io.BufferedReader
 import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
 import java.net.Inet4Address
 import java.net.InetAddress
-import java.net.InterfaceAddress
 import java.net.NetworkInterface
-import java.util.HexFormat
 
 class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
 
@@ -42,19 +38,15 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
 
         while (networkInterfaces.hasMoreElements()) {
             val networkInterface = networkInterfaces.nextElement()
-            Log.d("SubnetDebug", "Interface: ${networkInterface.displayName}, Name: ${networkInterface.name}, isUp: ${networkInterface.isUp}")
 
             if (networkInterface.displayName == "wlan0") {
                 val interfaceAddresses = networkInterface.interfaceAddresses
                 for (interfaceAddress in interfaceAddresses) {
                     val address = interfaceAddress.address
-                    Log.d("SubnetDebug", "  Address: ${address.hostAddress}, Type: ${address::class.java.simpleName}")
 
                     if (address is Inet4Address) {
                         val prefixLength = interfaceAddress.networkPrefixLength
-                        Log.d("SubnetDebug", "  Prefix Length: $prefixLength")
                         val subnetMask = prefixLengthToSubnetMask(prefixLength)
-                        Log.d("SubnetDebug", "  Subnet Mask: $subnetMask")
                         return subnetMask
                     }
                 }
@@ -64,8 +56,15 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         return null
     }
 
+    private fun getCurrentDeviceMac(inetAddress: InetAddress): String? {
+        val netInterface = NetworkInterface.getByInetAddress(inetAddress) ?: return null
+        val macAddressBytes = netInterface.hardwareAddress
 
-    @SuppressLint("NewApi")
+        val macAddressHex = macAddressBytes.joinToString(":") { String.format("%02X", it) }
+
+        return macAddressHex.lowercase()
+    }
+
     private suspend fun getMacAddress(ipAddress: String): String? {
         var mac: String? = null
         withContext(Dispatchers.IO) {
@@ -92,21 +91,19 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
                     Log.i("getMacAddress","Filepath doesn't exists or cannot be read.")
                 }
                 file.bufferedReader().use { reader ->
-                    reader.forEachLine { Log.i("getMacAddress",it) }
+                    reader.forEachLine {
+                        val line = it.split(Regex("\\s+"))
+
+                        if (line[0] == ipAddress) {
+                            mac = line[3]
+                            return@forEachLine
+                        }
+                    }
                 }
             }
         }
+
         return mac
-//        val netInterface = NetworkInterface.getByInetAddress(inetAddress) ?: return null
-//        val macAddressBytes = netInterface.hardwareAddress
-//
-//        val macAddressHex = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-//            HexFormat.ofDelimiter(":").formatHex(macAddressBytes)
-//        } else {
-//            macAddressBytes.joinToString(":") { String.format("%02X", it) }
-//        }
-//        Log.i("Mac",macAddressHex)
-//        return macAddressHex
     }
 
     private fun calculateNetworkAddress(localIp: String, subnetMask: String): Int {
@@ -161,20 +158,14 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         val networkAddressInt = calculateNetworkAddress(localIp,subnetMask)
         val broadcastAddressInt = calculateBroadcastAddress(networkAddressInt,subnetMask)
 
-
-
         val deviceList = mutableListOf<Device>()
         for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
             val address = integerToInetAddress(ipInt)
-
-            if (withContext(Dispatchers.IO) {
-                    address.isReachable(1000)
-                }) {
+            if (address.isReachable(1000)) {
                 val hostAddress = address.hostAddress!!
-//                val macAddress: String? = getMacAddress(address)
                 val hostName: String? = if (address.hostName != hostAddress) address.hostName else null
+                val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
 
-                val macAddress = getMacAddress(hostAddress)
                 deviceReached(Device(hostName,hostAddress,macAddress))
                 deviceList.add(Device(hostName,hostAddress,macAddress))
             }
