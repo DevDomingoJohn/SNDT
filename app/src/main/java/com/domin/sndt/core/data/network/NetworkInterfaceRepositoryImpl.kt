@@ -1,8 +1,9 @@
-package com.domin.sndt.core.network
+package com.domin.sndt.core.data.network
 
 import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
+import com.domin.sndt.core.domain.MacVendorsRepository
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +14,9 @@ import java.net.Inet4Address
 import java.net.InetAddress
 import java.net.NetworkInterface
 
-class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
+class NetworkInterfaceRepositoryImpl(
+    private val macVendorsRepository: MacVendorsRepository
+): NetworkInterfaceRepository {
 
     override suspend fun getLocalIp(): String? {
         val networkInterfaces = NetworkInterface.getNetworkInterfaces()
@@ -151,26 +154,23 @@ class NetworkInterfaceRepositoryImpl: NetworkInterfaceRepository {
         return InetAddress.getByAddress(ipBytes)
     }
 
-    override suspend fun scanNetwork(deviceReached: (Device) -> Unit): List<Device> {
+    override suspend fun scanNetwork(deviceReached: (Device) -> Unit) {
         val localIp = getLocalIp()!!
         val subnetMask = getSubnet()!!
 
         val networkAddressInt = calculateNetworkAddress(localIp,subnetMask)
         val broadcastAddressInt = calculateBroadcastAddress(networkAddressInt,subnetMask)
 
-        val deviceList = mutableListOf<Device>()
         for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
             val address = integerToInetAddress(ipInt)
             if (address.isReachable(1000)) {
                 val hostAddress = address.hostAddress!!
-                val hostName: String? = if (address.hostName != hostAddress) address.hostName else null
+                val label = if (hostAddress == localIp) "This Device" else null
                 val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
+                val vendor = macVendorsRepository.getVendorByMac(macAddress)
 
-                deviceReached(Device(hostName,hostAddress,macAddress))
-                deviceList.add(Device(hostName,hostAddress,macAddress))
+                deviceReached(Device(label,hostAddress,macAddress,vendor))
             }
         }
-
-        return deviceList
     }
 }

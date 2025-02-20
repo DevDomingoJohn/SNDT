@@ -1,6 +1,5 @@
 package com.domin.sndt.scan
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
@@ -22,11 +21,9 @@ class ScanVM @Inject constructor(
 
     fun test() {
         viewModelScope.launch(Dispatchers.IO) {
-            val listDevices = networkInterfaceRepository.scanNetwork { device ->
+            networkInterfaceRepository.scanNetwork { device ->
                 _state.update { it + device }
             }
-            Log.i("Online Devices","Reachable Devices: $listDevices")
-
         }
     }
 }

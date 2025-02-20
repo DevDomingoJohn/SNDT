@@ -1,4 +1,4 @@
-package com.domin.sndt.core.network
+package com.domin.sndt.core.data.network
 
 import android.net.wifi.WifiManager
 import com.domin.sndt.core.domain.WifiManagerRepository
