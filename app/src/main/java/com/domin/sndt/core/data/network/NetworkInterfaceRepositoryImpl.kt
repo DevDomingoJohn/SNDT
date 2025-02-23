@@ -3,7 +3,7 @@ package com.domin.sndt.core.data.network
 import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
-import com.domin.sndt.core.domain.MacVendorsRepository
+import com.domin.sndt.core.domain.MacLookupRepository
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +17,7 @@ import java.net.InetAddress
 import java.net.NetworkInterface
 
 class NetworkInterfaceRepositoryImpl(
-    private val macVendorsRepository: MacVendorsRepository
+    private val macLookupRepository: MacLookupRepository
 ): NetworkInterfaceRepository {
     override suspend fun getLocalIp(): String? {
         val networkInterfaces = NetworkInterface.getNetworkInterfaces()
@@ -155,8 +155,10 @@ class NetworkInterfaceRepositoryImpl(
         return InetAddress.getByAddress(ipBytes)
     }
 
-    override suspend fun scanNetwork(deviceReached: (Device) -> Unit) {
+    override suspend fun scanNetwork(deviceReached: (Device) -> Unit, isScanning: (Boolean) -> Unit) {
         withContext(Dispatchers.IO) {
+            isScanning(true)
+
             val localIp = getLocalIp()!!
             val subnetMask = getSubnet()!!
 
@@ -165,19 +167,21 @@ class NetworkInterfaceRepositoryImpl(
 
             for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
                 val address = integerToInetAddress(ipInt)
+
                 delay(100)
                 launch {
                     if (address.isReachable(1000)) {
                         val hostAddress = address.hostAddress!!
                         val label = if (hostAddress == localIp) "This Device" else null
                         val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
-
-                        val vendor = macVendorsRepository.getVendorByMac(macAddress)
+                        val vendor = macLookupRepository.getVendorByMac(macAddress)
 
                         deviceReached(Device(label,hostAddress,macAddress,vendor))
                     }
                 }
             }
+
+            isScanning(false)
         }
     }
 }

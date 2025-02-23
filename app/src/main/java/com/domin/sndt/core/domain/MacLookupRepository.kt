@@ -1,5 +1,5 @@
 package com.domin.sndt.core.domain
 
-interface MacVendorsRepository {
+interface MacLookupRepository {
     suspend fun getVendorByMac(mac: String?): String?
 }

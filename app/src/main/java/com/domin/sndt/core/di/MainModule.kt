@@ -3,13 +3,13 @@ package com.domin.sndt.core.di
 import android.app.Application
 import android.content.Context
 import android.net.wifi.WifiManager
-import com.domin.sndt.core.data.MacVendorsApi
-import com.domin.sndt.core.data.MacVendorsRepositoryImpl
+import com.domin.sndt.core.data.MacLookupApi
+import com.domin.sndt.core.data.MacLookupRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.core.domain.WifiManagerRepository
 import com.domin.sndt.core.data.network.NetworkInterfaceRepositoryImpl
 import com.domin.sndt.core.data.network.WifiManagerRepositoryImpl
-import com.domin.sndt.core.domain.MacVendorsRepository
+import com.domin.sndt.core.domain.MacLookupRepository
 import com.skydoves.sandwich.retrofit.adapters.ApiResponseCallAdapterFactory
 import dagger.Module
 import dagger.Provides
@@ -37,22 +37,22 @@ object MainModule {
 
     @Provides
     @Singleton
-    fun provideMacVendorsApi(): MacVendorsApi =
+    fun provideMacLookupApi(): MacLookupApi =
         Retrofit.Builder()
-            .baseUrl(MacVendorsApi.baseUrl)
+            .baseUrl(MacLookupApi.BASE_URL)
             .addConverterFactory(ScalarsConverterFactory.create())
             .addCallAdapterFactory(ApiResponseCallAdapterFactory.create())
             .build()
-            .create(MacVendorsApi::class.java)
+            .create(MacLookupApi::class.java)
 
     @Provides
     @Singleton
-    fun provideMacVendorsRepository(macVendorsApi: MacVendorsApi): MacVendorsRepository =
-        MacVendorsRepositoryImpl(macVendorsApi)
+    fun provideMacLookupRepository(macLookupApi: MacLookupApi): MacLookupRepository =
+        MacLookupRepositoryImpl(macLookupApi)
 
     @Provides
     @Singleton
-    fun provideNetworkInterfaceRepository(macVendorsRepository: MacVendorsRepository): NetworkInterfaceRepository {
-        return NetworkInterfaceRepositoryImpl(macVendorsRepository)
+    fun provideNetworkInterfaceRepository(macLookupRepository: MacLookupRepository): NetworkInterfaceRepository {
+        return NetworkInterfaceRepositoryImpl(macLookupRepository)
     }
 }

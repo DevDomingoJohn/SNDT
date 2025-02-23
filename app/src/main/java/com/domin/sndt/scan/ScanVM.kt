@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -19,11 +18,19 @@ class ScanVM @Inject constructor(
     private val _state = MutableStateFlow<List<Device>>(emptyList())
     val state = _state.asStateFlow()
 
+    private val _isScanning = MutableStateFlow(false)
+    val isScanning = _isScanning.asStateFlow()
+
     fun test() {
         viewModelScope.launch {
-            networkInterfaceRepository.scanNetwork { device ->
-                _state.update { it + device }
-            }
+            networkInterfaceRepository.scanNetwork(
+                deviceReached = { device ->
+                    _state.update { it + device }
+                },
+                isScanning = { isScanning ->
+                    _isScanning.update { isScanning }
+                }
+            )
         }
     }
 }
