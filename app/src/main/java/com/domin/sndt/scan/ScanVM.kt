@@ -20,7 +20,7 @@ class ScanVM @Inject constructor(
     val state = _state.asStateFlow()
 
     fun test() {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             networkInterfaceRepository.scanNetwork { device ->
                 _state.update { it + device }
             }

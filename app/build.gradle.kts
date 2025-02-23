@@ -67,7 +67,7 @@ dependencies {
     ksp(libs.hilt.android.compiler)
 
     implementation(libs.retrofit)
-    implementation(libs.converter.gson)
+    implementation(libs.converter.scalars)
     implementation(libs.sandwich)
     implementation(libs.sandwich.retrofit)
 }

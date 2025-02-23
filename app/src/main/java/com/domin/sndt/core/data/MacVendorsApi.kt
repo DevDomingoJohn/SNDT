@@ -6,7 +6,7 @@ import retrofit2.http.Path
 
 interface MacVendorsApi {
     @GET("{mac}")
-    suspend fun getVendorByMac(@Path("mac") mac: String): ApiResponse<String?>
+    suspend fun getVendorByMac(@Path("mac") mac: String): ApiResponse<String>
 
     companion object {
         const val baseUrl = "https://api.macvendors.com/"

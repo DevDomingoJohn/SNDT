@@ -1,8 +1,6 @@
 package com.domin.sndt.core.data
 
-import android.util.Log
 import com.domin.sndt.core.domain.MacVendorsRepository
-import com.skydoves.sandwich.onError
 import com.skydoves.sandwich.onSuccess
 
 class MacVendorsRepositoryImpl(

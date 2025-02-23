@@ -7,6 +7,8 @@ import com.domin.sndt.core.domain.MacVendorsRepository
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
@@ -17,7 +19,6 @@ import java.net.NetworkInterface
 class NetworkInterfaceRepositoryImpl(
     private val macVendorsRepository: MacVendorsRepository
 ): NetworkInterfaceRepository {
-
     override suspend fun getLocalIp(): String? {
         val networkInterfaces = NetworkInterface.getNetworkInterfaces()
 
@@ -155,21 +156,27 @@ class NetworkInterfaceRepositoryImpl(
     }
 
     override suspend fun scanNetwork(deviceReached: (Device) -> Unit) {
-        val localIp = getLocalIp()!!
-        val subnetMask = getSubnet()!!
+        withContext(Dispatchers.IO) {
+            val localIp = getLocalIp()!!
+            val subnetMask = getSubnet()!!
 
-        val networkAddressInt = calculateNetworkAddress(localIp,subnetMask)
-        val broadcastAddressInt = calculateBroadcastAddress(networkAddressInt,subnetMask)
+            val networkAddressInt = calculateNetworkAddress(localIp,subnetMask)
+            val broadcastAddressInt = calculateBroadcastAddress(networkAddressInt,subnetMask)
 
-        for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
-            val address = integerToInetAddress(ipInt)
-            if (address.isReachable(1000)) {
-                val hostAddress = address.hostAddress!!
-                val label = if (hostAddress == localIp) "This Device" else null
-                val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
-                val vendor = macVendorsRepository.getVendorByMac(macAddress)
+            for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
+                val address = integerToInetAddress(ipInt)
+                delay(100)
+                launch {
+                    if (address.isReachable(1000)) {
+                        val hostAddress = address.hostAddress!!
+                        val label = if (hostAddress == localIp) "This Device" else null
+                        val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
 
-                deviceReached(Device(label,hostAddress,macAddress,vendor))
+                        val vendor = macVendorsRepository.getVendorByMac(macAddress)
+
+                        deviceReached(Device(label,hostAddress,macAddress,vendor))
+                    }
+                }
             }
         }
     }

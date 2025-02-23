@@ -16,7 +16,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import retrofit2.Retrofit
-import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
 import javax.inject.Singleton
 
 @Module
@@ -40,7 +40,7 @@ object MainModule {
     fun provideMacVendorsApi(): MacVendorsApi =
         Retrofit.Builder()
             .baseUrl(MacVendorsApi.baseUrl)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(ScalarsConverterFactory.create())
             .addCallAdapterFactory(ApiResponseCallAdapterFactory.create())
             .build()
             .create(MacVendorsApi::class.java)
