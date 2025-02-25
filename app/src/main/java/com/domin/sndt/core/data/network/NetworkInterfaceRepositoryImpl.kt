@@ -3,7 +3,7 @@ package com.domin.sndt.core.data.network
 import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
-import com.domin.sndt.core.domain.MacLookupRepository
+import com.domin.sndt.core.data.MacLookupRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
 import kotlinx.coroutines.Dispatchers
@@ -17,7 +17,7 @@ import java.net.InetAddress
 import java.net.NetworkInterface
 
 class NetworkInterfaceRepositoryImpl(
-    private val macLookupRepository: MacLookupRepository
+    private val macLookupRepositoryImpl: MacLookupRepositoryImpl
 ): NetworkInterfaceRepository {
     override suspend fun getLocalIp(): String? {
         val networkInterfaces = NetworkInterface.getNetworkInterfaces()
@@ -174,7 +174,7 @@ class NetworkInterfaceRepositoryImpl(
                         val hostAddress = address.hostAddress!!
                         val label = if (hostAddress == localIp) "This Device" else null
                         val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
-                        val vendor = macLookupRepository.getVendorByMac(macAddress)
+                        val vendor = macLookupRepositoryImpl.getVendorByMac(macAddress)
 
                         deviceReached(Device(label,hostAddress,macAddress,vendor))
                     }

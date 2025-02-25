@@ -18,6 +18,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -27,9 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun InfoScreen() {
-    val vm = viewModel<InfoVM>()
+fun InfoScreen(vm: InfoVM = viewModel()) {
     val state by vm.state.collectAsState()
+
+    LaunchedEffect(key1 = true) {
+        vm.getWifiInfo()
+    }
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -116,14 +120,16 @@ fun InfoScreen() {
                     Text(text = state.connectionState)
                 }
                 HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "DHCP Lease Time")
-                    Text(text = state.dhcpLeaseTime)
+                if (state.dhcpLeaseTime != null) {
+                    Row(
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(text = "DHCP Lease Time")
+                        Text(text = state.dhcpLeaseTime!!)
+                    }
+                    HorizontalDivider()
                 }
-                HorizontalDivider()
                 Row(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
@@ -136,8 +142,8 @@ fun InfoScreen() {
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(text = "Vendor")
-                    Text(text = state.vendor)
+                    Text(text = "BSSID")
+                    Text(text = state.bssid)
                 }
                 HorizontalDivider()
                 Row(

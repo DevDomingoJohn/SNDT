@@ -2,6 +2,7 @@ package com.domin.sndt.core.di
 
 import android.app.Application
 import android.content.Context
+import android.net.ConnectivityManager
 import android.net.wifi.WifiManager
 import com.domin.sndt.core.data.MacLookupApi
 import com.domin.sndt.core.data.MacLookupRepositoryImpl
@@ -9,7 +10,6 @@ import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.core.domain.WifiManagerRepository
 import com.domin.sndt.core.data.network.NetworkInterfaceRepositoryImpl
 import com.domin.sndt.core.data.network.WifiManagerRepositoryImpl
-import com.domin.sndt.core.domain.MacLookupRepository
 import com.skydoves.sandwich.retrofit.adapters.ApiResponseCallAdapterFactory
 import dagger.Module
 import dagger.Provides
@@ -25,15 +25,21 @@ object MainModule {
 
     @Provides
     @Singleton
-    fun provideWifiManager(context: Application): WifiManager {
-        return context.getSystemService(Context.WIFI_SERVICE) as WifiManager
-    }
+    fun provideConnectivityManager(context: Application): ConnectivityManager =
+        context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
 
     @Provides
     @Singleton
-    fun provideWifiManagerRepository(wifiManager: WifiManager): WifiManagerRepository {
-        return WifiManagerRepositoryImpl(wifiManager)
-    }
+    fun provideWifiManager(context: Application): WifiManager =
+        context.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+    @Provides
+    @Singleton
+    fun provideWifiManagerRepository(
+        wifiManager: WifiManager,
+        connectivityManager: ConnectivityManager
+    ): WifiManagerRepository =
+        WifiManagerRepositoryImpl(wifiManager, connectivityManager)
 
     @Provides
     @Singleton
@@ -47,12 +53,11 @@ object MainModule {
 
     @Provides
     @Singleton
-    fun provideMacLookupRepository(macLookupApi: MacLookupApi): MacLookupRepository =
+    fun provideMacLookupRepositoryImpl(macLookupApi: MacLookupApi): MacLookupRepositoryImpl =
         MacLookupRepositoryImpl(macLookupApi)
 
     @Provides
     @Singleton
-    fun provideNetworkInterfaceRepository(macLookupRepository: MacLookupRepository): NetworkInterfaceRepository {
-        return NetworkInterfaceRepositoryImpl(macLookupRepository)
-    }
+    fun provideNetworkInterfaceRepository(macLookupRepositoryImpl: MacLookupRepositoryImpl): NetworkInterfaceRepository =
+        NetworkInterfaceRepositoryImpl(macLookupRepositoryImpl)
 }
