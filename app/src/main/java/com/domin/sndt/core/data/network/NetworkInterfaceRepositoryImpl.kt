@@ -37,6 +37,24 @@ class NetworkInterfaceRepositoryImpl(
         return null
     }
 
+    override suspend fun getIpv6(): String? {
+        val networkInterfaces = NetworkInterface.getNetworkInterfaces()
+
+        while (networkInterfaces.hasMoreElements()) {
+            val networkInterface = networkInterfaces.nextElement()
+            val addresses = networkInterface.inetAddresses
+
+            while (addresses.hasMoreElements()) {
+                val address = addresses.nextElement()
+                if (!address.isLoopbackAddress && address.hostAddress?.contains(':') == true) {
+                    return address.hostAddress
+                }
+            }
+        }
+
+        return null
+    }
+
     override suspend fun getSubnet(): String? {
         val networkInterfaces = NetworkInterface.getNetworkInterfaces()
 
@@ -167,7 +185,6 @@ class NetworkInterfaceRepositoryImpl(
 
             for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
                 val address = integerToInetAddress(ipInt)
-
                 delay(100)
                 launch {
                     if (address.isReachable(1000)) {

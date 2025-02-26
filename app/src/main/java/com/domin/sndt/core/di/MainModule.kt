@@ -9,9 +9,9 @@ import com.domin.sndt.core.data.IpifyRepositoryImpl
 import com.domin.sndt.core.data.MacLookupApi
 import com.domin.sndt.core.data.MacLookupRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
-import com.domin.sndt.core.domain.WifiManagerRepository
+import com.domin.sndt.core.domain.ConnectivityManagerRepository
 import com.domin.sndt.core.data.network.NetworkInterfaceRepositoryImpl
-import com.domin.sndt.core.data.network.WifiManagerRepositoryImpl
+import com.domin.sndt.core.data.network.ConnectivityManagerRepositoryImpl
 import com.skydoves.sandwich.retrofit.adapters.ApiResponseCallAdapterFactory
 import dagger.Module
 import dagger.Provides
@@ -37,12 +37,13 @@ object MainModule {
 
     @Provides
     @Singleton
-    fun provideWifiManagerRepository(
+    fun provideConnectivityManagerRepository(
         wifiManager: WifiManager,
         connectivityManager: ConnectivityManager,
+        networkInterfaceRepository: NetworkInterfaceRepository,
         ipifyRepositoryImpl: IpifyRepositoryImpl
-    ): WifiManagerRepository =
-        WifiManagerRepositoryImpl(wifiManager, connectivityManager,ipifyRepositoryImpl)
+    ): ConnectivityManagerRepository =
+        ConnectivityManagerRepositoryImpl(wifiManager, connectivityManager,networkInterfaceRepository,ipifyRepositoryImpl)
 
     @Provides
     @Singleton

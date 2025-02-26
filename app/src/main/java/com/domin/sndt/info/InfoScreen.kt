@@ -26,6 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.domin.sndt.info.components.ConnectionDetailsCard
+import com.domin.sndt.info.components.WifiConnectionCard
+import com.domin.sndt.info.components.WifiDetailsCard
 
 @Composable
 fun InfoScreen(vm: InfoVM = viewModel()) {
@@ -51,126 +54,28 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
             text = "CONNECTION DETAILS",
             style = MaterialTheme.typography.titleSmall
         )
-        Card(
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                Modifier.padding(8.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Connection Type")
-                    Text(text = state.connectionType)
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "External IP")
-                    Text(text = state.externalIp)
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "External IPv6")
-                    Text(text = state.externalIpv6)
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "HTTP Proxy")
-                    Text(text = state.httpProxy)
-                }
-            }
-        }
+
+        ConnectionDetailsCard(state)
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        if (state.connectionType == "Wi-Fi") {
+            Text(
+                text = "WI-FI Connection",
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            WifiConnectionCard(state)
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
 
         Text(
             text = "WI-FI DETAILS",
             style = MaterialTheme.typography.titleSmall
         )
 
-        Card(
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Column(
-                Modifier.padding(8.dp)
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Enabled")
-                    Text(text = "${state.wifiEnabled}")
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Connection State")
-                    Text(text = state.connectionState)
-                }
-                HorizontalDivider()
-                if (state.dhcpLeaseTime != null) {
-                    Row(
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(text = "DHCP Lease Time")
-                        Text(text = state.dhcpLeaseTime!!)
-                    }
-                    HorizontalDivider()
-                }
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "SSID")
-                    Text(text = state.ssid)
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "BSSID")
-                    Text(text = state.bssid)
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Channel")
-                    Text(text = state.channel)
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Speed (Down / Up)")
-                    Text(text = state.speed)
-                }
-                HorizontalDivider()
-                Row(
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(text = "Signal Strength")
-                    Text(text = state.signalStrength)
-                }
-            }
-        }
+        WifiDetailsCard(state)
     }
 }
 

@@ -6,14 +6,18 @@ import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
 import com.domin.sndt.core.data.IpifyRepositoryImpl
-import com.domin.sndt.core.domain.WifiManagerRepository
+import com.domin.sndt.core.domain.NetworkInterfaceRepository
+import com.domin.sndt.core.domain.ConnectivityManagerRepository
 import com.domin.sndt.info.ConnectionDetails
+import java.net.Inet4Address
+import java.net.Inet6Address
 
-class WifiManagerRepositoryImpl(
+class ConnectivityManagerRepositoryImpl(
     private val wifiManager: WifiManager,
     private val connectivityManager: ConnectivityManager,
+    private val networkInterfaceRepository: NetworkInterfaceRepository,
     private val ipifyRepositoryImpl: IpifyRepositoryImpl
-): WifiManagerRepository {
+): ConnectivityManagerRepository {
     override suspend fun getWifiDetails(): ConnectionDetails {
         var httpProxy = "N/A"
         var connectionType = "None"
@@ -23,6 +27,14 @@ class WifiManagerRepositoryImpl(
         var speed = "N/A"
         var signalStrength = "N/A"
 
+        var ipv4Address = "N/A"
+        var subnetMask = "N/A"
+        var gatewayIpv4 = "N/A"
+        var dnsServerIpv4 = "N/A"
+        var ipv6Address = "N/A"
+        var gatewayIpv6 = "N/A"
+        var dnsServerIpv6 = "N/A"
+
         val network = connectivityManager.activeNetwork
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
 
@@ -30,7 +42,26 @@ class WifiManagerRepositoryImpl(
             if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                 connectionType = "Wi-Fi"
                 val linkProperties = connectivityManager.getLinkProperties(network)
-                httpProxy = linkProperties?.httpProxy?.toString() ?: "N/A"
+                if (linkProperties!= null) {
+                    httpProxy = linkProperties.httpProxy.toString()
+
+                    for (route in linkProperties.routes) {
+                        if (route.isDefaultRoute && route.gateway is Inet4Address) {
+                            gatewayIpv4 = route.gateway?.hostAddress ?: "N/A"
+                        } else if (route.isDefaultRoute && route.gateway is Inet6Address) {
+                            gatewayIpv4 = route.gateway?.hostAddress ?: "N/A"
+                        }
+                    }
+
+                    for (address in linkProperties.dnsServers) {
+                        if (address.hostAddress?.contains(".") == true) {
+                            dnsServerIpv4 = address.hostAddress ?: "N/A"
+                        } else if (address.hostAddress?.contains(":") == true) {
+                            dnsServerIpv6 = address.hostAddress ?: "N/A"
+                        }
+                    }
+                }
+
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S){
                     ssid = wifiManager.connectionInfo.ssid
                     bssid = wifiManager.connectionInfo.bssid
@@ -45,7 +76,12 @@ class WifiManagerRepositoryImpl(
                     signalStrength = wifiInfo.rssi.toString()
                     channel = wifiInfo.frequency.toString()
                 }
+
+                ipv4Address = networkInterfaceRepository.getLocalIp() ?: "N/A"
+                subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
+                ipv6Address = networkInterfaceRepository.getIpv6() ?: "N/A"
             }
+
 
         }
 
@@ -66,6 +102,14 @@ class WifiManagerRepositoryImpl(
             externalIp = publicIpv4,
             externalIpv6 = publicIpv6,
             httpProxy = httpProxy,
+
+            ipv4Address = ipv4Address,
+            subnetMask = subnetMask,
+            gatewayIpv4 = gatewayIpv4,
+            dnsServerIpv4 = dnsServerIpv4,
+            ipv6Address = ipv6Address,
+            gatewayIpv6 = gatewayIpv6,
+            dnsServerIpv6 = dnsServerIpv6,
 
             wifiEnabled = isWifiEnabled,
             connectionState = connectionState,

@@ -2,7 +2,7 @@ package com.domin.sndt.info
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.domin.sndt.core.domain.WifiManagerRepository
+import com.domin.sndt.core.domain.ConnectivityManagerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -12,14 +12,14 @@ import javax.inject.Inject
 
 @HiltViewModel
 class InfoVM @Inject constructor(
-    private val wifiManagerRepository: WifiManagerRepository
+    private val connectivityManagerRepository: ConnectivityManagerRepository
 ): ViewModel() {
     private val _state = MutableStateFlow(ConnectionDetails())
     val state = _state.asStateFlow()
 
     fun getWifiInfo() {
         viewModelScope.launch {
-            val wifiDetails = wifiManagerRepository.getWifiDetails()
+            val wifiDetails = connectivityManagerRepository.getWifiDetails()
             _state.update { wifiDetails }
         }
     }
