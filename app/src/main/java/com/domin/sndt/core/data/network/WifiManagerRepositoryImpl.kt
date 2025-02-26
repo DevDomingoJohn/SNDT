@@ -5,14 +5,18 @@ import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import com.domin.sndt.core.data.IpifyRepositoryImpl
 import com.domin.sndt.core.domain.WifiManagerRepository
 import com.domin.sndt.info.ConnectionDetails
 
 class WifiManagerRepositoryImpl(
     private val wifiManager: WifiManager,
-    private val connectivityManager: ConnectivityManager
+    private val connectivityManager: ConnectivityManager,
+    private val ipifyRepositoryImpl: IpifyRepositoryImpl
 ): WifiManagerRepository {
     override suspend fun getWifiDetails(): ConnectionDetails {
+        var httpProxy = "N/A"
+        var connectionType = "None"
         var ssid = "N/A"
         var bssid = "N/A"
         var channel = "N/A"
@@ -24,7 +28,9 @@ class WifiManagerRepositoryImpl(
 
         networkCapabilities?.let {
             if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                connectionType = "Wi-Fi"
                 val linkProperties = connectivityManager.getLinkProperties(network)
+                httpProxy = linkProperties?.httpProxy?.toString() ?: "N/A"
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S){
                     ssid = wifiManager.connectionInfo.ssid
                     bssid = wifiManager.connectionInfo.bssid
@@ -52,7 +58,15 @@ class WifiManagerRepositoryImpl(
         val dhcpLease = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
             wifiManager.dhcpInfo.leaseDuration.toString() else null
 
+        val publicIpv4 = ipifyRepositoryImpl.getPublicIpv4() ?: "N/A"
+        val publicIpv6 = ipifyRepositoryImpl.getPublicIpv6() ?: "N/A"
+
         return ConnectionDetails(
+            connectionType = connectionType,
+            externalIp = publicIpv4,
+            externalIpv6 = publicIpv6,
+            httpProxy = httpProxy,
+
             wifiEnabled = isWifiEnabled,
             connectionState = connectionState,
             dhcpLeaseTime = dhcpLease,
