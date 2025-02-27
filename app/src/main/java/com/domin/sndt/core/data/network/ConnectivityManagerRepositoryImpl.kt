@@ -8,6 +8,7 @@ import android.os.Build
 import com.domin.sndt.core.data.IpifyRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.core.domain.ConnectivityManagerRepository
+import com.domin.sndt.info.ActiveConnection
 import com.domin.sndt.info.ConnectionDetails
 import java.net.Inet4Address
 import java.net.Inet6Address
@@ -18,7 +19,7 @@ class ConnectivityManagerRepositoryImpl(
     private val networkInterfaceRepository: NetworkInterfaceRepository,
     private val ipifyRepositoryImpl: IpifyRepositoryImpl
 ): ConnectivityManagerRepository {
-    override suspend fun getWifiDetails(): ConnectionDetails {
+    override suspend fun getConnectionInfo(): ConnectionDetails {
         var httpProxy = "N/A"
         var connectionType = "None"
         var ssid = "N/A"
@@ -81,8 +82,6 @@ class ConnectivityManagerRepositoryImpl(
                 subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
                 ipv6Address = networkInterfaceRepository.getIpv6() ?: "N/A"
             }
-
-
         }
 
         val isWifiEnabled = wifiManager.isWifiEnabled
@@ -120,5 +119,29 @@ class ConnectivityManagerRepositoryImpl(
             speed = speed,
             signalStrength = signalStrength
         )
+    }
+
+    override suspend fun getConnectionType(): ActiveConnection? {
+        val publicIpv4 = ipifyRepositoryImpl.getPublicIpv4()
+        val publicIpv6 = ipifyRepositoryImpl.getPublicIpv6()
+
+        val network = connectivityManager.activeNetwork
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+
+        networkCapabilities?.let {
+            val linkProperties = connectivityManager.getLinkProperties(network)
+            val httpProxy = linkProperties?.httpProxy?.host
+
+            if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+                return ActiveConnection("Wi-Fi",publicIpv4,publicIpv6,httpProxy)
+
+            if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
+                return ActiveConnection("Cell",publicIpv4,publicIpv6,httpProxy)
+
+            if (it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
+                return ActiveConnection("Ethernet",publicIpv4,publicIpv6,httpProxy)
+        }
+
+        return null
     }
 }

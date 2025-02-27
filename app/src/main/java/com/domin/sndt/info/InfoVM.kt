@@ -14,12 +14,17 @@ import javax.inject.Inject
 class InfoVM @Inject constructor(
     private val connectivityManagerRepository: ConnectivityManagerRepository
 ): ViewModel() {
+    private val _uiState = MutableStateFlow(UIState())
+    val uiState = _uiState.asStateFlow()
+
     private val _state = MutableStateFlow(ConnectionDetails())
     val state = _state.asStateFlow()
 
-    fun getWifiInfo() {
+    fun getConnectionInfo() {
         viewModelScope.launch {
-            val wifiDetails = connectivityManagerRepository.getWifiDetails()
+            val connectionType = connectivityManagerRepository.getConnectionType()
+
+            val wifiDetails = connectivityManagerRepository.getConnectionInfo()
             _state.update { wifiDetails }
         }
     }
