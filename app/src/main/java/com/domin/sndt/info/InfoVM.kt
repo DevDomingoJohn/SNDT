@@ -17,15 +17,52 @@ class InfoVM @Inject constructor(
     private val _uiState = MutableStateFlow(UIState())
     val uiState = _uiState.asStateFlow()
 
-    private val _state = MutableStateFlow(ConnectionDetails())
-    val state = _state.asStateFlow()
-
     fun getConnectionInfo() {
         viewModelScope.launch {
-            val connectionType = connectivityManagerRepository.getConnectionType()
+            val connectionDetails = connectivityManagerRepository.getConnectionDetails()
+            if (connectionDetails != null) {
+                val activeConnection = connectionDetails.first
+                val connectionInfo = connectionDetails.second
+                _uiState.update { it.copy(
+                    activeConnectionState = ActiveConnectionState(
+                        activeConnection.connectionType ?: "N/A",
+                        activeConnection.externalIp ?: "N/A",
+                        activeConnection.externalIpv6 ?: "N/A",
+                        activeConnection.httpProxy ?: "N/A"
+                    ),
+                    connectionInfoState = ConnectionInfoState(
+                        connectionInfo.ipv4Address ?: "N/A",
+                        connectionInfo.subnetMask ?: "N/A",
+                        connectionInfo.gatewayIpv4 ?: "N/A",
+                        connectionInfo.dnsServerIpv4 ?: "N/A",
+                        connectionInfo.ipv6Address ?: "N/A",
+                        connectionInfo.gatewayIpv6 ?: "N/A",
+                        connectionInfo.dnsServerIpv6 ?: "N/A"
+                    )
+                ) }
 
-            val wifiDetails = connectivityManagerRepository.getConnectionInfo()
-            _state.update { wifiDetails }
+                when (activeConnection.connectionType) {
+                    "Wi-Fi" -> {
+                        val wifiDetails = connectivityManagerRepository.getWifiDetails()
+                        if (wifiDetails != null) {
+                            val dhcpLeaseTime = if (wifiDetails.dhcpLeaseTime != null)
+                                wifiDetails.dhcpLeaseTime.toString() else null
+                            _uiState.update { it.copy(
+                                wifiDetailsState = WifiDetailsState(
+                                    wifiDetails.wifiEnabled.toString(),
+                                    wifiDetails.connectionState ?: "N/A",
+                                    dhcpLeaseTime,
+                                    wifiDetails.ssid ?: "N/A",
+                                    wifiDetails.bssid ?: "N/A",
+                                    wifiDetails.channel ?: "N/A",
+                                    wifiDetails.speed ?: "N/A",
+                                    wifiDetails.signalStrength ?: "N/A"
+                                )
+                            ) }
+                        }
+                    }
+                }
+            }
         }
     }
 }

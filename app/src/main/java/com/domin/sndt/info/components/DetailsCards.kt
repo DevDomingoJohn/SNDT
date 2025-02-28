@@ -12,11 +12,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.domin.sndt.info.ConnectionDetails
+import com.domin.sndt.info.ActiveConnectionState
+import com.domin.sndt.info.ConnectionInfoState
+import com.domin.sndt.info.WifiDetailsState
 
 @Composable
-fun ConnectionDetailsCard(
-    state: ConnectionDetails
+fun ActiveConnectionCard(
+    state: ActiveConnectionState
 ) {
     Card(
         shape = RoundedCornerShape(8.dp)
@@ -61,7 +63,7 @@ fun ConnectionDetailsCard(
 
 @Composable
 fun WifiDetailsCard(
-    state: ConnectionDetails
+    state: WifiDetailsState
 ) {
     Card(
         shape = RoundedCornerShape(8.dp)
@@ -74,7 +76,7 @@ fun WifiDetailsCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(text = "Enabled")
-                Text(text = "${state.wifiEnabled}")
+                Text(text = state.wifiEnabled)
             }
             HorizontalDivider()
             Row(
@@ -139,8 +141,8 @@ fun WifiDetailsCard(
 }
 
 @Composable
-fun WifiConnectionCard(
-    state: ConnectionDetails
+fun ConnectionInfoCard(
+    state: ConnectionInfoState
 ) {
     Card(
         shape = RoundedCornerShape(8.dp)

@@ -1,13 +1,13 @@
 package com.domin.sndt.info
 
 data class ActiveConnectionState(
-    val connectionType: String = "None",
+    val connectionType: String = "N/A",
     val externalIp: String = "N/A",
     val externalIpv6: String = "N/A",
     val httpProxy: String = "N/A",
 )
 
-data class WifiConnectionState(
+data class ConnectionInfoState(
     val ipv4Address: String = "N/A",
     val subnetMask: String = "N/A",
     val gatewayIpv4: String = "N/A",

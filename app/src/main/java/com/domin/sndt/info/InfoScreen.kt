@@ -21,13 +21,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.domin.sndt.info.components.ConnectionDetailsCard
-import com.domin.sndt.info.components.WifiConnectionCard
+import com.domin.sndt.info.components.ActiveConnectionCard
+import com.domin.sndt.info.components.ConnectionInfoCard
 import com.domin.sndt.info.components.WifiDetailsCard
 
 @Composable
 fun InfoScreen(vm: InfoVM = viewModel()) {
-    val state by vm.state.collectAsState()
+    val state by vm.uiState.collectAsState()
 
     LaunchedEffect(key1 = true) {
         vm.getConnectionInfo()
@@ -50,17 +50,17 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
             style = MaterialTheme.typography.titleSmall
         )
 
-        ConnectionDetailsCard(state)
+        ActiveConnectionCard(state.activeConnectionState)
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (state.connectionType == "Wi-Fi") {
+        if (state.activeConnectionState.connectionType == "Wi-Fi") {
             Text(
                 text = "WI-FI Connection",
                 style = MaterialTheme.typography.titleSmall
             )
 
-            WifiConnectionCard(state)
+            ConnectionInfoCard(state.connectionInfoState)
 
             Spacer(modifier = Modifier.height(24.dp))
         }
@@ -70,7 +70,7 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
             style = MaterialTheme.typography.titleSmall
         )
 
-        WifiDetailsCard(state)
+        WifiDetailsCard(state.wifiDetailsState)
     }
 }
 

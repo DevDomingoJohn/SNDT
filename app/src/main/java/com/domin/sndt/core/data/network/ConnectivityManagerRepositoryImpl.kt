@@ -1,6 +1,7 @@
 package com.domin.sndt.core.data.network
 
 import android.net.ConnectivityManager
+import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
@@ -9,7 +10,8 @@ import com.domin.sndt.core.data.IpifyRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.core.domain.ConnectivityManagerRepository
 import com.domin.sndt.info.ActiveConnection
-import com.domin.sndt.info.ConnectionDetails
+import com.domin.sndt.info.ConnectionInfo
+import com.domin.sndt.info.WifiDetails
 import java.net.Inet4Address
 import java.net.Inet6Address
 
@@ -19,127 +21,97 @@ class ConnectivityManagerRepositoryImpl(
     private val networkInterfaceRepository: NetworkInterfaceRepository,
     private val ipifyRepositoryImpl: IpifyRepositoryImpl
 ): ConnectivityManagerRepository {
-    override suspend fun getConnectionInfo(): ConnectionDetails {
-        var httpProxy = "N/A"
-        var connectionType = "None"
-        var ssid = "N/A"
-        var bssid = "N/A"
-        var channel = "N/A"
-        var speed = "N/A"
-        var signalStrength = "N/A"
-
-        var ipv4Address = "N/A"
-        var subnetMask = "N/A"
-        var gatewayIpv4 = "N/A"
-        var dnsServerIpv4 = "N/A"
-        var ipv6Address = "N/A"
-        var gatewayIpv6 = "N/A"
-        var dnsServerIpv6 = "N/A"
-
+    override suspend fun getWifiDetails(): WifiDetails? {
         val network = connectivityManager.activeNetwork
-        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return null
 
-        networkCapabilities?.let {
-            if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                connectionType = "Wi-Fi"
-                val linkProperties = connectivityManager.getLinkProperties(network)
-                if (linkProperties!= null) {
-                    httpProxy = linkProperties.httpProxy.toString()
+        val isWifiEnabled = wifiManager.isWifiEnabled
+        val connectionState = "Connected"
+        var ssid: String?
+        var bssid: String?
+        var channel: String?
+        var speed: String?
+        var signalStrength: String?
+        var dhcpLease: Int? = null
 
-                    for (route in linkProperties.routes) {
-                        if (route.isDefaultRoute && route.gateway is Inet4Address) {
-                            gatewayIpv4 = route.gateway?.hostAddress ?: "N/A"
-                        } else if (route.isDefaultRoute && route.gateway is Inet6Address) {
-                            gatewayIpv4 = route.gateway?.hostAddress ?: "N/A"
-                        }
-                    }
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S){
+            dhcpLease = wifiManager.dhcpInfo.leaseDuration
+            ssid = wifiManager.connectionInfo.ssid
+            bssid = wifiManager.connectionInfo.bssid
+            speed = wifiManager.connectionInfo.linkSpeed.toString()
+            signalStrength = wifiManager.connectionInfo.rssi.toString()
+            channel = wifiManager.connectionInfo.frequency.toString()
+        } else {
+            val wifiInfo = networkCapabilities.transportInfo as (WifiInfo)
+            ssid = wifiInfo.ssid
+            bssid = wifiInfo.bssid
+            speed = wifiInfo.linkSpeed.toString()
+            signalStrength = wifiInfo.rssi.toString()
+            channel = wifiInfo.frequency.toString()
+        }
 
-                    for (address in linkProperties.dnsServers) {
-                        if (address.hostAddress?.contains(".") == true) {
-                            dnsServerIpv4 = address.hostAddress ?: "N/A"
-                        } else if (address.hostAddress?.contains(":") == true) {
-                            dnsServerIpv6 = address.hostAddress ?: "N/A"
-                        }
-                    }
-                }
+        return WifiDetails(isWifiEnabled,connectionState,dhcpLease,ssid,bssid,channel,speed,signalStrength)
+    }
 
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S){
-                    ssid = wifiManager.connectionInfo.ssid
-                    bssid = wifiManager.connectionInfo.bssid
-                    speed = wifiManager.connectionInfo.linkSpeed.toString()
-                    signalStrength = wifiManager.connectionInfo.rssi.toString()
-                    channel = wifiManager.connectionInfo.frequency.toString()
-                } else {
-                    val wifiInfo = it.transportInfo as (WifiInfo)
-                    ssid = wifiInfo.ssid
-                    bssid = wifiInfo.bssid
-                    speed = wifiInfo.linkSpeed.toString()
-                    signalStrength = wifiInfo.rssi.toString()
-                    channel = wifiInfo.frequency.toString()
-                }
+    private suspend fun getConnectionInfo(network: Network): ConnectionInfo {
+        val linkProperties = connectivityManager.getLinkProperties(network)!!
+        var gatewayIpv4: String? = null
+        var gatewayIpv6: String? = null
+        var dnsIpv4: String? = null
+        var dnsIpv6: String? = null
 
-                ipv4Address = networkInterfaceRepository.getLocalIp() ?: "N/A"
-                subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
-                ipv6Address = networkInterfaceRepository.getIpv6() ?: "N/A"
+        for (route in linkProperties.routes) {
+            val gateway = route.gateway
+            if (gateway != null && route.isDefaultRoute && !gateway.isLoopbackAddress) {
+                if (gateway is Inet4Address)
+                    gatewayIpv4 = route.gateway?.hostAddress
+                if (gateway is Inet6Address)
+                    gatewayIpv6 = route.gateway?.hostAddress
             }
         }
 
-        val isWifiEnabled = wifiManager.isWifiEnabled
-
-        val connectionState = wifiManager.wifiState.let {
-            if (it == WifiManager.WIFI_STATE_ENABLED) "Connected" else "Disconnected"
+        for (dns in linkProperties.dnsServers) {
+            if (dns is Inet4Address && !dns.isLoopbackAddress)
+                dnsIpv4 = dns.hostAddress
+            if (dns is Inet6Address && !dns.isLoopbackAddress)
+                dnsIpv6 = dns.hostAddress
         }
 
-        val dhcpLease = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
-            wifiManager.dhcpInfo.leaseDuration.toString() else null
+        val ipv4Address = networkInterfaceRepository.getLocalIp() ?: "N/A"
+        val subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
+        val ipv6Address = networkInterfaceRepository.getIpv6() ?: "N/A"
 
-        val publicIpv4 = ipifyRepositoryImpl.getPublicIpv4() ?: "N/A"
-        val publicIpv6 = ipifyRepositoryImpl.getPublicIpv6() ?: "N/A"
-
-        return ConnectionDetails(
-            connectionType = connectionType,
-            externalIp = publicIpv4,
-            externalIpv6 = publicIpv6,
-            httpProxy = httpProxy,
-
-            ipv4Address = ipv4Address,
-            subnetMask = subnetMask,
-            gatewayIpv4 = gatewayIpv4,
-            dnsServerIpv4 = dnsServerIpv4,
-            ipv6Address = ipv6Address,
-            gatewayIpv6 = gatewayIpv6,
-            dnsServerIpv6 = dnsServerIpv6,
-
-            wifiEnabled = isWifiEnabled,
-            connectionState = connectionState,
-            dhcpLeaseTime = dhcpLease,
-            ssid = ssid,
-            bssid = bssid,
-            channel = channel,
-            speed = speed,
-            signalStrength = signalStrength
-        )
+        return ConnectionInfo(ipv4Address,subnetMask,gatewayIpv4,dnsIpv4,ipv6Address,gatewayIpv6,dnsIpv6)
     }
 
-    override suspend fun getConnectionType(): ActiveConnection? {
-        val publicIpv4 = ipifyRepositoryImpl.getPublicIpv4()
-        val publicIpv6 = ipifyRepositoryImpl.getPublicIpv6()
-
+    override suspend fun getConnectionDetails(): Pair<ActiveConnection,ConnectionInfo>? {
         val network = connectivityManager.activeNetwork
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
 
         networkCapabilities?.let {
+            val publicIpv4 = ipifyRepositoryImpl.getPublicIpv4()
+            val publicIpv6 = ipifyRepositoryImpl.getPublicIpv6()
+
             val linkProperties = connectivityManager.getLinkProperties(network)
             val httpProxy = linkProperties?.httpProxy?.host
 
-            if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
-                return ActiveConnection("Wi-Fi",publicIpv4,publicIpv6,httpProxy)
+            if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                val activeConnection = ActiveConnection("Wi-Fi",publicIpv4,publicIpv6,httpProxy)
+                val connectionInfo = getConnectionInfo(network!!)
+                return Pair(activeConnection,connectionInfo)
+            }
 
-            if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR))
-                return ActiveConnection("Cell",publicIpv4,publicIpv6,httpProxy)
+            if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                val activeConnection = ActiveConnection("Cell",publicIpv4,publicIpv6,httpProxy)
+                val connectionInfo = getConnectionInfo(network!!)
+                return Pair(activeConnection,connectionInfo)
+            }
 
-            if (it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))
-                return ActiveConnection("Ethernet",publicIpv4,publicIpv6,httpProxy)
+            if (it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                val activeConnection = ActiveConnection("Ethernet",publicIpv4,publicIpv6,httpProxy)
+                val connectionInfo = getConnectionInfo(network!!)
+                return Pair(activeConnection,connectionInfo)
+            }
         }
 
         return null
