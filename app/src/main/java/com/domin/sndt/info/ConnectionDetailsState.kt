@@ -27,3 +27,16 @@ data class WifiDetailsState(
     val speed: String = "N/A",
     val signalStrength: String = "N/A"
 )
+
+data class CellDetailsState(
+    val dataState: String = "N/A",
+    val dataActivity: String = "N/A",
+    val roaming: String = "N/A",
+    val simState: String = "N/A",
+    val simName: String = "N/A",
+    val simMccMnc: String = "N/A",
+    val operatorName: String = "N/A",
+    val networkType: String = "N/A",
+    val phoneType: String = "N/A",
+    val signalStrength: String = "N/A",
+)

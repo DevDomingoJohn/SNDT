@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +24,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.domin.sndt.info.components.ActiveConnectionCard
+import com.domin.sndt.info.components.CellDetailsCard
 import com.domin.sndt.info.components.ConnectionInfoCard
 import com.domin.sndt.info.components.WifiDetailsCard
 
@@ -44,6 +47,7 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
                     bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
                 )
             )
+            .verticalScroll(rememberScrollState())
     ) {
         Text(
             text = "CONNECTION DETAILS",
@@ -54,9 +58,9 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (state.activeConnectionState.connectionType == "Wi-Fi") {
+        if (state.activeConnectionState.connectionType != "N/A") {
             Text(
-                text = "WI-FI Connection",
+                text = "${state.activeConnectionState.connectionType.uppercase()} CONNECTION",
                 style = MaterialTheme.typography.titleSmall
             )
 
@@ -71,6 +75,15 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
         )
 
         WifiDetailsCard(state.wifiDetailsState)
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "CELL DETAILS",
+            style = MaterialTheme.typography.titleSmall
+        )
+
+        CellDetailsCard(state.cellDetailsState)
     }
 }
 

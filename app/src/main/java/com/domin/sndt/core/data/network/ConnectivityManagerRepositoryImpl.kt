@@ -1,15 +1,18 @@
 package com.domin.sndt.core.data.network
 
+import android.annotation.SuppressLint
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
-import com.domin.sndt.core.data.IpifyRepositoryImpl
+import android.telephony.TelephonyManager
+import com.domin.sndt.core.data.api.IpifyRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.core.domain.ConnectivityManagerRepository
 import com.domin.sndt.info.ActiveConnection
+import com.domin.sndt.info.CellDetails
 import com.domin.sndt.info.ConnectionInfo
 import com.domin.sndt.info.WifiDetails
 import java.net.Inet4Address
@@ -18,20 +21,21 @@ import java.net.Inet6Address
 class ConnectivityManagerRepositoryImpl(
     private val wifiManager: WifiManager,
     private val connectivityManager: ConnectivityManager,
+    private val telephonyManager: TelephonyManager,
     private val networkInterfaceRepository: NetworkInterfaceRepository,
     private val ipifyRepositoryImpl: IpifyRepositoryImpl
 ): ConnectivityManagerRepository {
-    override suspend fun getWifiDetails(): WifiDetails? {
+    override suspend fun getWifiDetails(): WifiDetails {
         val network = connectivityManager.activeNetwork
-        val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return null
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)!!
 
         val isWifiEnabled = wifiManager.isWifiEnabled
         val connectionState = "Connected"
-        var ssid: String?
-        var bssid: String?
-        var channel: String?
-        var speed: String?
-        var signalStrength: String?
+        val ssid: String?
+        val bssid: String?
+        val channel: String?
+        val speed: String?
+        val signalStrength: String?
         var dhcpLease: Int? = null
 
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S){
@@ -51,6 +55,21 @@ class ConnectivityManagerRepositoryImpl(
         }
 
         return WifiDetails(isWifiEnabled,connectionState,dhcpLease,ssid,bssid,channel,speed,signalStrength)
+    }
+
+    @SuppressLint("MissingPermission")
+    override suspend fun getCellDetails(): CellDetails {
+        val dataState = telephonyManager.dataState // TelephonyManager.DATA_$ for the string
+        val dataActivity = telephonyManager.dataActivity // TelephonyManager.DATA_ACTIVITY_$ for the string
+        val roaming = telephonyManager.isNetworkRoaming
+        val simState = telephonyManager.simState // TelephonyManager.SIM_STATE_$ for the string
+        val simName = telephonyManager.simOperatorName
+        val simMccMnc = telephonyManager.simOperator
+        val operatorName = telephonyManager.networkOperatorName
+        val networkType = telephonyManager.dataNetworkType
+        val phoneType = telephonyManager.phoneType
+
+        return CellDetails(dataState,dataActivity,roaming,simState,simName,simMccMnc,operatorName,networkType,phoneType)
     }
 
     private suspend fun getConnectionInfo(network: Network): ConnectionInfo {

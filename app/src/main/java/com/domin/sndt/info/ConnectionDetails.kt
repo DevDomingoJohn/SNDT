@@ -25,5 +25,18 @@ data class WifiDetails(
     val bssid: String?,
     val channel: String?,
     val speed: String?,
-    val signalStrength: String?,
+    val signalStrength: String?
+)
+
+data class CellDetails(
+    val dataState: Int?,
+    val dataActivity: Int?,
+    val roaming: Boolean = false,
+    val simState: Int?,
+    val simName: String?,
+    val simMccMnc: String?,
+    val operatorName: String?,
+    val networkType: Int?,
+    val phoneType: Int?,
+    val signalStrength: String? = null,
 )

@@ -1,4 +1,4 @@
-package com.domin.sndt.core.data
+package com.domin.sndt.core.data.api
 
 import com.domin.sndt.BuildConfig
 import com.skydoves.sandwich.ApiResponse
