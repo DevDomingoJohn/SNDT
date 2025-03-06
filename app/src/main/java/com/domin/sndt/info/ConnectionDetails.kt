@@ -37,6 +37,5 @@ data class CellDetails(
     val simMccMnc: String?,
     val operatorName: String?,
     val networkType: Int?,
-    val phoneType: Int?,
-    val signalStrength: String? = null,
+    val phoneType: Int?
 )

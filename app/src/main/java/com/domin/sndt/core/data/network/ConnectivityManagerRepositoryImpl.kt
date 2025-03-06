@@ -1,7 +1,10 @@
 package com.domin.sndt.core.data.network
 
+import android.Manifest
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.app.Application
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -18,6 +21,7 @@ import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
+import androidx.core.app.ActivityCompat
 import com.domin.sndt.core.data.api.IpifyRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
 import com.domin.sndt.core.domain.ConnectivityManagerRepository
@@ -68,7 +72,6 @@ class ConnectivityManagerRepositoryImpl(
         return WifiDetails(isWifiEnabled,connectionState,dhcpLease,ssid,bssid,channel,speed,signalStrength)
     }
 
-    @SuppressLint("MissingPermission")
     override suspend fun getCellDetails(): CellDetails {
         val dataState = telephonyManager.dataState // TelephonyManager.DATA_$ for the string
         val dataActivity = telephonyManager.dataActivity // TelephonyManager.DATA_ACTIVITY_$ for the string
@@ -77,7 +80,17 @@ class ConnectivityManagerRepositoryImpl(
         val simName = telephonyManager.simOperatorName
         val simMccMnc = telephonyManager.simOperator
         val operatorName = telephonyManager.networkOperatorName
-        val networkType = telephonyManager.dataNetworkType
+
+        val networkType = if (
+            context.checkSelfPermission(
+                Manifest.permission.READ_PHONE_STATE
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            telephonyManager.dataNetworkType
+        } else {
+            null
+        }
+
         val phoneType = telephonyManager.phoneType
 
         return CellDetails(dataState,dataActivity,roaming,simState,simName,simMccMnc,operatorName,networkType,phoneType)

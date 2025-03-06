@@ -1,6 +1,7 @@
 package com.domin.sndt.info
 
 import android.telephony.TelephonyManager
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.domin.sndt.core.domain.ConnectivityManagerRepository
@@ -15,6 +16,8 @@ import javax.inject.Inject
 class InfoVM @Inject constructor(
     private val connectivityManagerRepository: ConnectivityManagerRepository
 ): ViewModel() {
+
+
     private val _uiState = MutableStateFlow(UIState())
     val uiState = _uiState.asStateFlow()
 
@@ -45,8 +48,7 @@ class InfoVM @Inject constructor(
                 when (activeConnection.connectionType) {
                     "Wi-Fi" -> {
                         val wifiDetails = connectivityManagerRepository.getWifiDetails()
-                        val dhcpLeaseTime = if (wifiDetails.dhcpLeaseTime != null)
-                            wifiDetails.dhcpLeaseTime.toString() else null
+                        val dhcpLeaseTime = wifiDetails.dhcpLeaseTime?.toString()
                         _uiState.update { it.copy(
                             wifiDetailsState = WifiDetailsState(
                                 wifiDetails.wifiEnabled.toString(),
@@ -69,19 +71,28 @@ class InfoVM @Inject constructor(
                         val simState = getSimState(cellDetails.simState)
                         val networkType = getNetworkTypeName(cellDetails.networkType)
                         val phoneType = getPhoneType(cellDetails.phoneType)
+
                         _uiState.update { it.copy(
                             cellDetailsState = CellDetailsState(
-                                dataState,
-                                dataActivity,
-                                roaming,
-                                simState,
-                                cellDetails.simName ?: "N/A",
-                                cellDetails.simMccMnc ?: "N/A",
-                                cellDetails.operatorName ?: "N/A",
-                                networkType,
-                                phoneType
+                                dataState = dataState,
+                                dataActivity = dataActivity,
+                                roaming = roaming,
+                                simState = simState,
+                                simName = cellDetails.simName ?: "N/A",
+                                simMccMnc = cellDetails.simMccMnc ?: "N/A",
+                                operatorName = cellDetails.operatorName ?: "N/A",
+                                networkType = networkType,
+                                phoneType = phoneType
                             )
                         ) }
+
+                        connectivityManagerRepository.getCellSignalStrength { dbm ->
+                            if (dbm != null) {
+                                _uiState.update { it.copy(
+                                    cellDetailsState = it.cellDetailsState.copy(signalStrength = dbm.toString())
+                                ) }
+                            }
+                        }
                     }
                 }
             }

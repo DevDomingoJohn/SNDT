@@ -280,14 +280,6 @@ fun CellDetailsCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "MCC/MNC")
-                Text(text = state.mccMnc)
-            }
-            HorizontalDivider()
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
                 Text(text = "Network Type")
                 Text(text = state.networkType)
             }
