@@ -1,12 +1,22 @@
 package com.domin.sndt.core.data.network
 
 import android.annotation.SuppressLint
+import android.app.Application
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.telephony.CellSignalStrengthCdma
+import android.telephony.CellSignalStrengthGsm
+import android.telephony.CellSignalStrengthLte
+import android.telephony.CellSignalStrengthNr
+import android.telephony.CellSignalStrengthTdscdma
+import android.telephony.CellSignalStrengthWcdma
+import android.telephony.PhoneStateListener
+import android.telephony.SignalStrength
+import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
 import com.domin.sndt.core.data.api.IpifyRepositoryImpl
 import com.domin.sndt.core.domain.NetworkInterfaceRepository
@@ -19,6 +29,7 @@ import java.net.Inet4Address
 import java.net.Inet6Address
 
 class ConnectivityManagerRepositoryImpl(
+    private val context: Application,
     private val wifiManager: WifiManager,
     private val connectivityManager: ConnectivityManager,
     private val telephonyManager: TelephonyManager,
@@ -70,6 +81,72 @@ class ConnectivityManagerRepositoryImpl(
         val phoneType = telephonyManager.phoneType
 
         return CellDetails(dataState,dataActivity,roaming,simState,simName,simMccMnc,operatorName,networkType,phoneType)
+    }
+
+    override suspend fun getCellSignalStrength(callback: (Int?) -> Unit) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val telephonyCallback = object: TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
+                override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
+                    var dbm: Int? = null
+                    val signalStrengthList = signalStrength.cellSignalStrengths
+
+                    for (signal in signalStrengthList) {
+                        when (signal) {
+                            is CellSignalStrengthGsm -> dbm = signal.dbm
+                            is CellSignalStrengthCdma -> dbm = signal.dbm
+                            is CellSignalStrengthLte -> dbm = signal.dbm
+                            is CellSignalStrengthWcdma -> dbm = signal.dbm
+                            is CellSignalStrengthNr -> dbm = signal.dbm
+                            is CellSignalStrengthTdscdma -> dbm = signal.dbm
+                        }
+                    }
+                    callback(dbm)
+
+                    telephonyManager.unregisterTelephonyCallback(this)
+                }
+            }
+
+            try {
+                telephonyManager.registerTelephonyCallback(context.mainExecutor, telephonyCallback)
+            } catch (securityException: SecurityException) {
+                securityException.printStackTrace()
+                callback(null)
+            }
+        } else {
+            val phoneStateListener = object: PhoneStateListener() {
+                override fun onSignalStrengthsChanged(signalStrength: SignalStrength?) {
+                    super.onSignalStrengthsChanged(signalStrength)
+                    if (signalStrength != null) {
+                        var dbm: Int? = null
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                            val signalStrengthList = signalStrength.cellSignalStrengths
+
+                            for (signal in signalStrengthList) {
+                                when (signal) {
+                                    is CellSignalStrengthGsm -> dbm = signal.dbm
+                                    is CellSignalStrengthCdma -> dbm = signal.dbm
+                                    is CellSignalStrengthLte -> dbm = signal.dbm
+                                    is CellSignalStrengthWcdma -> dbm = signal.dbm
+                                    is CellSignalStrengthNr -> dbm = signal.dbm
+                                    is CellSignalStrengthTdscdma -> dbm = signal.dbm
+                                }
+                            }
+                            callback(dbm)
+                        } else {
+                            val method = SignalStrength::class.java.getMethod("getDbm")
+                            val dbm = method.invoke(signalStrength) as Int
+                            callback(dbm)
+                        }
+                    } else {
+                        callback(null)
+                    }
+
+                    telephonyManager.listen(this, LISTEN_NONE)
+                }
+            }
+
+            telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
+        }
     }
 
     private suspend fun getConnectionInfo(network: Network): ConnectionInfo {

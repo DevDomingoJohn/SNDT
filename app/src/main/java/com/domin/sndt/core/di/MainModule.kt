@@ -44,13 +44,14 @@ object MainModule {
     @Provides
     @Singleton
     fun provideConnectivityManagerRepository(
+        context: Application,
         wifiManager: WifiManager,
         connectivityManager: ConnectivityManager,
         telephonyManager: TelephonyManager,
         networkInterfaceRepository: NetworkInterfaceRepository,
         ipifyRepositoryImpl: IpifyRepositoryImpl
     ): ConnectivityManagerRepository =
-        ConnectivityManagerRepositoryImpl(wifiManager, connectivityManager, telephonyManager, networkInterfaceRepository,ipifyRepositoryImpl)
+        ConnectivityManagerRepositoryImpl(context, wifiManager, connectivityManager, telephonyManager, networkInterfaceRepository,ipifyRepositoryImpl)
 
     @Provides
     @Singleton

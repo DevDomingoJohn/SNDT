@@ -8,5 +8,6 @@ import com.domin.sndt.info.WifiDetails
 interface ConnectivityManagerRepository {
     suspend fun getWifiDetails(): WifiDetails
     suspend fun getCellDetails(): CellDetails
+    suspend fun getCellSignalStrength(callback: (Int?) -> Unit)
     suspend fun getConnectionDetails(): Pair<ActiveConnection, ConnectionInfo>?
 }
