@@ -1,4 +1,4 @@
-package com.domin.sndt.core.domain
+package com.domin.sndt.core.domain.repo
 
 import com.domin.sndt.info.ActiveConnection
 import com.domin.sndt.info.CellDetails
@@ -6,6 +6,7 @@ import com.domin.sndt.info.ConnectionInfo
 import com.domin.sndt.info.WifiDetails
 
 interface ConnectivityManagerRepository {
+    suspend fun getActiveConnection(callback: (Any) -> Unit)
     suspend fun getWifiDetails(): WifiDetails
     suspend fun getCellDetails(): CellDetails
     suspend fun getCellSignalStrength(callback: (Int?) -> Unit)

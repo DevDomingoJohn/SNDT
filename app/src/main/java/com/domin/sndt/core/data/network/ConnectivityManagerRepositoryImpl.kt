@@ -1,13 +1,13 @@
 package com.domin.sndt.core.data.network
 
 import android.Manifest
-import android.annotation.SuppressLint
-import android.app.Activity
 import android.app.Application
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
+import android.net.ConnectivityManager.NetworkCallback
 import android.net.Network
 import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.Build
@@ -21,10 +21,9 @@ import android.telephony.PhoneStateListener
 import android.telephony.SignalStrength
 import android.telephony.TelephonyCallback
 import android.telephony.TelephonyManager
-import androidx.core.app.ActivityCompat
 import com.domin.sndt.core.data.api.IpifyRepositoryImpl
-import com.domin.sndt.core.domain.NetworkInterfaceRepository
-import com.domin.sndt.core.domain.ConnectivityManagerRepository
+import com.domin.sndt.core.domain.repo.NetworkInterfaceRepository
+import com.domin.sndt.core.domain.repo.ConnectivityManagerRepository
 import com.domin.sndt.info.ActiveConnection
 import com.domin.sndt.info.CellDetails
 import com.domin.sndt.info.ConnectionInfo
@@ -40,6 +39,30 @@ class ConnectivityManagerRepositoryImpl(
     private val networkInterfaceRepository: NetworkInterfaceRepository,
     private val ipifyRepositoryImpl: IpifyRepositoryImpl
 ): ConnectivityManagerRepository {
+
+    override suspend fun getActiveConnection(callback: (Any) -> Unit) {
+        val networkListener = object: NetworkCallback() {
+
+            override fun onAvailable(network: Network) {
+                super.onAvailable(network)
+                val capabilities = connectivityManager.getNetworkCapabilities(network)
+                capabilities?.let {
+
+                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) callback("Wifi")
+                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) callback("Cell")
+                }
+            }
+        }
+
+        connectivityManager.registerNetworkCallback(
+            NetworkRequest.Builder()
+                .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
+                .build(),
+            networkListener
+        )
+    }
+
     override suspend fun getWifiDetails(): WifiDetails {
         val network = connectivityManager.activeNetwork
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network)!!

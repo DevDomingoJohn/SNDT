@@ -1,4 +1,4 @@
-package com.domin.sndt.core.domain
+package com.domin.sndt.core.domain.repo
 
 import com.domin.sndt.scan.Device
 

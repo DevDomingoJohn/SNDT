@@ -33,6 +33,7 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
     val state by vm.uiState.collectAsState()
 
     LaunchedEffect(key1 = true) {
+        vm.testActiveConnection()
         vm.getConnectionInfo()
     }
 

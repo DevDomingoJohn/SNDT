@@ -4,7 +4,7 @@ import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.domin.sndt.core.domain.ConnectivityManagerRepository
+import com.domin.sndt.core.domain.repo.ConnectivityManagerRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,10 +16,16 @@ import javax.inject.Inject
 class InfoVM @Inject constructor(
     private val connectivityManagerRepository: ConnectivityManagerRepository
 ): ViewModel() {
-
-
     private val _uiState = MutableStateFlow(UIState())
     val uiState = _uiState.asStateFlow()
+
+    fun testActiveConnection() {
+        viewModelScope.launch {
+            connectivityManagerRepository.getActiveConnection {
+                Log.i("INFOVM","Active Network: $it")
+            }
+        }
+    }
 
     fun getConnectionInfo() {
         viewModelScope.launch {
@@ -45,7 +51,7 @@ class InfoVM @Inject constructor(
                     )
                 ) }
 
-                when (activeConnection.connectionType) {
+                when (activeConnection.connectionType) { // Make this so two connection type can fetch info at the same time
                     "Wi-Fi" -> {
                         val wifiDetails = connectivityManagerRepository.getWifiDetails()
                         val dhcpLeaseTime = wifiDetails.dhcpLeaseTime?.toString()
@@ -73,7 +79,7 @@ class InfoVM @Inject constructor(
                         val phoneType = getPhoneType(cellDetails.phoneType)
 
                         _uiState.update { it.copy(
-                            cellDetailsState = CellDetailsState(
+                            cellDetailsState = it.cellDetailsState.copy(
                                 dataState = dataState,
                                 dataActivity = dataActivity,
                                 roaming = roaming,

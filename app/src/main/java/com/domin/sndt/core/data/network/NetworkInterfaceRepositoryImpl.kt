@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.os.Build
 import android.util.Log
 import com.domin.sndt.core.data.api.MacLookupRepositoryImpl
-import com.domin.sndt.core.domain.NetworkInterfaceRepository
+import com.domin.sndt.core.domain.repo.NetworkInterfaceRepository
 import com.domin.sndt.scan.Device
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay

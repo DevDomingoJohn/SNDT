@@ -9,8 +9,8 @@ import com.domin.sndt.core.data.api.IpifyApi
 import com.domin.sndt.core.data.api.IpifyRepositoryImpl
 import com.domin.sndt.core.data.api.MacLookupApi
 import com.domin.sndt.core.data.api.MacLookupRepositoryImpl
-import com.domin.sndt.core.domain.NetworkInterfaceRepository
-import com.domin.sndt.core.domain.ConnectivityManagerRepository
+import com.domin.sndt.core.domain.repo.NetworkInterfaceRepository
+import com.domin.sndt.core.domain.repo.ConnectivityManagerRepository
 import com.domin.sndt.core.data.network.NetworkInterfaceRepositoryImpl
 import com.domin.sndt.core.data.network.ConnectivityManagerRepositoryImpl
 import com.skydoves.sandwich.retrofit.adapters.ApiResponseCallAdapterFactory

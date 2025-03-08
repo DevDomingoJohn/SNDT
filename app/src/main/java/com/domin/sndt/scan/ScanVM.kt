@@ -2,7 +2,7 @@ package com.domin.sndt.scan
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.domin.sndt.core.domain.NetworkInterfaceRepository
+import com.domin.sndt.core.domain.repo.NetworkInterfaceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
