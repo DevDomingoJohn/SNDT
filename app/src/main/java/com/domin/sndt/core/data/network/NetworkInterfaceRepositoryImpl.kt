@@ -78,6 +78,20 @@ class NetworkInterfaceRepositoryImpl(
         return null
     }
 
+    override suspend fun getCellSubnet(interfaceName: String): String? {
+        val networkInterface = NetworkInterface.getByName(interfaceName)
+        val interfaceAddresses = networkInterface.interfaceAddresses
+        for (interfaceAddress in interfaceAddresses) {
+            val address = interfaceAddress.address
+            if (address is Inet4Address) {
+                val prefixLength = interfaceAddress.networkPrefixLength
+                return prefixLengthToSubnetMask(prefixLength)
+            }
+        }
+
+        return null
+    }
+
     private fun getCurrentDeviceMac(inetAddress: InetAddress): String? {
         val netInterface = NetworkInterface.getByInetAddress(inetAddress) ?: return null
         val macAddressBytes = netInterface.hardwareAddress

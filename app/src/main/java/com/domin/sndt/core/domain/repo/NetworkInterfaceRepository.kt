@@ -6,5 +6,6 @@ interface NetworkInterfaceRepository {
     suspend fun getLocalIp(): String?
     suspend fun getIpv6(): String?
     suspend fun getSubnet(): String?
+    suspend fun getCellSubnet(interfaceName: String): String?
     suspend fun scanNetwork(deviceReached: (Device) -> Unit, isScanning: (Boolean) -> Unit)
 }
