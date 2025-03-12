@@ -26,7 +26,6 @@ import com.domin.sndt.core.data.api.IpifyRepositoryImpl
 import com.domin.sndt.core.domain.repo.NetworkInterfaceRepository
 import com.domin.sndt.core.domain.repo.ConnectivityManagerRepository
 import com.domin.sndt.info.ActiveConnection
-import com.domin.sndt.info.CellConnectionInfo
 import com.domin.sndt.info.CellDetails
 import com.domin.sndt.info.ConnectionInfo
 import com.domin.sndt.info.WifiConnectionInfo
@@ -43,15 +42,15 @@ class ConnectivityManagerRepositoryImpl(
     private val ipifyRepositoryImpl: IpifyRepositoryImpl
 ): ConnectivityManagerRepository {
 
-    override suspend fun getActiveConnection(callback: (Any) -> Unit) {
+    override suspend fun getActiveConnection(callback: (String, Network) -> Unit) {
         val networkListener = object: NetworkCallback() {
 
             override fun onAvailable(network: Network) {
                 super.onAvailable(network)
                 val capabilities = connectivityManager.getNetworkCapabilities(network)
                 capabilities?.let {
-                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) callback("Wifi")
-                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) callback("Cell")
+                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) callback("Wi-Fi", network)
+                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) callback("Cell", network)
                 }
             }
         }
@@ -228,11 +227,13 @@ class ConnectivityManagerRepositoryImpl(
     }
 
     private suspend fun getConnectionInfo(network: Network): ConnectionInfo {
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
         val linkProperties = connectivityManager.getLinkProperties(network)!!
         var gatewayIpv4: String? = null
         var gatewayIpv6: String? = null
         var dnsIpv4: String? = null
         var dnsIpv6: String? = null
+        var subnetMask: String? = null
 
         for (route in linkProperties.routes) {
             val gateway = route.gateway
@@ -251,15 +252,22 @@ class ConnectivityManagerRepositoryImpl(
                 dnsIpv6 = dns.hostAddress
         }
 
+        networkCapabilities?.let {
+            if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
+            } else if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                val cellularInterfaceName = linkProperties.interfaceName!!
+                subnetMask = networkInterfaceRepository.getCellSubnet(cellularInterfaceName)
+            }
+        }
+
         val ipv4Address = networkInterfaceRepository.getLocalIp() ?: "N/A"
-        val subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
         val ipv6Address = networkInterfaceRepository.getIpv6() ?: "N/A"
 
         return ConnectionInfo(ipv4Address,subnetMask,gatewayIpv4,dnsIpv4,ipv6Address,gatewayIpv6,dnsIpv6)
     }
 
-    override suspend fun getConnectionDetails(): Pair<ActiveConnection,ConnectionInfo>? {
-        val network = connectivityManager.activeNetwork
+    override suspend fun getConnectionDetails(network: Network): Pair<ActiveConnection,ConnectionInfo>? {
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network)
 
         networkCapabilities?.let {
@@ -286,7 +294,6 @@ class ConnectivityManagerRepositoryImpl(
 
             if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
                 val activeConnection = ActiveConnection("Cell",publicIpv4,publicIpv6,httpProxy)
-                getCellConnectionInfo(network!!)
                 val connectionInfo = getConnectionInfo(network!!)
                 return Pair(activeConnection,connectionInfo)
             }
