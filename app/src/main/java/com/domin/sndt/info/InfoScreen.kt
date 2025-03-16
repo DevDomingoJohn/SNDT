@@ -24,8 +24,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.domin.sndt.info.components.ActiveConnectionCard
+import com.domin.sndt.info.components.CellConnectionInfoCard
 import com.domin.sndt.info.components.CellDetailsCard
-import com.domin.sndt.info.components.ConnectionInfoCard
+import com.domin.sndt.info.components.WifiConnectionInfoCard
 import com.domin.sndt.info.components.WifiDetailsCard
 
 @Composable
@@ -33,7 +34,6 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
     val state by vm.uiState.collectAsState()
 
     LaunchedEffect(key1 = true) {
-        vm.testActiveConnection()
         vm.getConnectionInfo()
     }
 
@@ -59,13 +59,24 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        if (state.activeConnectionState.connectionType != "N/A") {
+        if ("Wi-Fi" in state.activeConnectionList) {
             Text(
-                text = "${state.activeConnectionState.connectionType.uppercase()} CONNECTION",
+                text = "WI-FI CONNECTION",
                 style = MaterialTheme.typography.titleSmall
             )
 
-            ConnectionInfoCard(state.connectionInfoState)
+            WifiConnectionInfoCard(state.wifiInfoState)
+
+            Spacer(modifier = Modifier.height(24.dp))
+        }
+
+        if ("Cell" in state.activeConnectionList) {
+            Text(
+                text = "CELL CONNECTION",
+                style = MaterialTheme.typography.titleSmall
+            )
+
+            CellConnectionInfoCard(state.cellInfoState)
 
             Spacer(modifier = Modifier.height(24.dp))
         }

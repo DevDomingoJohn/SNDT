@@ -19,14 +19,6 @@ class InfoVM @Inject constructor(
     private val _uiState = MutableStateFlow(UIState())
     val uiState = _uiState.asStateFlow()
 
-    fun testActiveConnection() {
-        viewModelScope.launch {
-            connectivityManagerRepository.getActiveConnection { type, network ->
-                Log.i("INFOVM","Active Network: $type")
-            }
-        }
-    }
-
     fun getConnectionInfo() {
         viewModelScope.launch {
             connectivityManagerRepository.getActiveConnection { type, network ->
@@ -48,7 +40,7 @@ class InfoVM @Inject constructor(
                             )
                         ) }
 
-                        if (type == "Wi-Fi") {
+                        if (activeConnection.connectionType == "Wi-Fi") {
                             _uiState.update { it.copy(
                                 wifiInfoState = WifiInfoState(
                                     connectionInfo.ipv4Address ?: "N/A",
@@ -58,9 +50,10 @@ class InfoVM @Inject constructor(
                                     connectionInfo.ipv6Address ?: "N/A",
                                     connectionInfo.gatewayIpv6 ?: "N/A",
                                     connectionInfo.dnsServerIpv6 ?: "N/A"
-                                )
+                                ),
+                                activeConnectionList = it.activeConnectionList + type
                             ) }
-                        } else if (type == "Cell") {
+                        } else if (activeConnection.connectionType == "Cell") {
                             _uiState.update { it.copy(
                                 cellInfoState = CellInfoState(
                                     connectionInfo.ipv4Address ?: "N/A",
@@ -70,11 +63,14 @@ class InfoVM @Inject constructor(
                                     connectionInfo.ipv6Address ?: "N/A",
                                     connectionInfo.gatewayIpv6 ?: "N/A",
                                     connectionInfo.dnsServerIpv6 ?: "N/A"
-                                )
+                                ),
+                                activeConnectionList = it.activeConnectionList + type
                             ) }
                         }
 
-                        when (type) { // Make this so two connection type can fetch info at the same time
+                        Log.i("INFOVM",_uiState.value.activeConnectionList.toString())
+
+                        when (type) {
                             "Wi-Fi" -> {
                                 val wifiDetails = connectivityManagerRepository.getWifiDetails()
                                 val dhcpLeaseTime = wifiDetails.dhcpLeaseTime?.toString()

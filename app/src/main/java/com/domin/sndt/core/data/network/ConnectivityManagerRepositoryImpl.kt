@@ -50,7 +50,7 @@ class ConnectivityManagerRepositoryImpl(
                 val capabilities = connectivityManager.getNetworkCapabilities(network)
                 capabilities?.let {
                     if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) callback("Wi-Fi", network)
-                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) callback("Cell", network)
+                    else if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) callback("Cell", network)
                 }
             }
         }
@@ -59,6 +59,7 @@ class ConnectivityManagerRepositoryImpl(
             NetworkRequest.Builder()
                 .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build(),
             networkListener
         )

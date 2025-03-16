@@ -6,5 +6,6 @@ data class UIState(
     val wifiInfoState: WifiInfoState = WifiInfoState(),
     val cellInfoState: CellInfoState = CellInfoState(),
     val wifiDetailsState: WifiDetailsState = WifiDetailsState(),
-    val cellDetailsState: CellDetailsState = CellDetailsState()
+    val cellDetailsState: CellDetailsState = CellDetailsState(),
+    val activeConnectionList: List<String> = emptyList<String>()
 )
