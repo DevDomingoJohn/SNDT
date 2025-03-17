@@ -30,6 +30,9 @@ import com.domin.sndt.info.CellDetails
 import com.domin.sndt.info.ConnectionInfo
 import com.domin.sndt.info.WifiConnectionInfo
 import com.domin.sndt.info.WifiDetails
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import java.net.Inet4Address
 import java.net.Inet6Address
 
@@ -185,6 +188,41 @@ class ConnectivityManagerRepositoryImpl(
 
             telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_SIGNAL_STRENGTHS)
         }
+    }
+
+    override suspend fun getCellDataState(): Flow<Int> = callbackFlow {
+        val phoneStateListener = object : PhoneStateListener() {
+            override fun onDataConnectionStateChanged(
+                state: Int,
+                networkType: Int
+            ) {
+                super.onDataConnectionStateChanged(state, networkType)
+                trySend(state)
+            }
+        }
+
+        telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_DATA_CONNECTION_STATE)
+
+        awaitClose {
+            telephonyManager.listen(
+                phoneStateListener,
+                PhoneStateListener.LISTEN_NONE
+            )
+        }
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//            val dataStateCallback = object : TelephonyCallback(), TelephonyCallback.DataConnectionStateListener {
+//                override fun onDataConnectionStateChanged(
+//                    state: Int,
+//                    networkType: Int
+//                ) {
+//                    callback(state)
+//                }
+//            }
+//
+//            telephonyManager.registerTelephonyCallback(context.mainExecutor,dataStateCallback)
+//        } else {
+//
+//        }
     }
 
     private suspend fun getWifiConnectionInfo(network: Network): WifiConnectionInfo {

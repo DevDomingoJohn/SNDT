@@ -21,6 +21,39 @@ class InfoVM @Inject constructor(
 
     fun getConnectionInfo() {
         viewModelScope.launch {
+            connectivityManagerRepository.getCellSignalStrength { dbm ->
+                if (dbm != null) {
+                    viewModelScope.launch {
+                        val cellDetails = connectivityManagerRepository.getCellDetails()
+                        val dataState = if (cellDetails.dataState == TelephonyManager.DATA_CONNECTED) "Connected"
+                        else "Disconnected"
+                        val dataActivity = getDataActivity(cellDetails.dataActivity)
+                        val roaming = if (cellDetails.roaming) "Yes" else "No"
+                        val simState = getSimState(cellDetails.simState)
+                        val networkType = getNetworkTypeName(cellDetails.networkType)
+                        val phoneType = getPhoneType(cellDetails.phoneType)
+
+                        _uiState.update { it.copy(
+                            cellDetailsState = it.cellDetailsState.copy(
+                                dataState = dataState,
+                                dataActivity = dataActivity,
+                                roaming = roaming,
+                                simState = simState,
+                                simName = cellDetails.simName ?: "N/A",
+                                simMccMnc = cellDetails.simMccMnc ?: "N/A",
+                                operatorName = cellDetails.operatorName ?: "N/A",
+                                networkType = networkType,
+                                phoneType = phoneType
+                            )
+                        ) }
+
+                        _uiState.update { it.copy(
+                            cellDetailsState = it.cellDetailsState.copy(signalStrength = dbm.toString())
+                        ) }
+                    }
+                }
+            }
+
             connectivityManagerRepository.getActiveConnection { type, network ->
                 viewModelScope.launch {
                     var connectionDetails: Pair<ActiveConnection, ConnectionInfo>? = null
@@ -93,21 +126,12 @@ class InfoVM @Inject constructor(
                                 else "Disconnected"
                                 val dataActivity = getDataActivity(cellDetails.dataActivity)
                                 val roaming = if (cellDetails.roaming) "Yes" else "No"
-                                val simState = getSimState(cellDetails.simState)
-                                val networkType = getNetworkTypeName(cellDetails.networkType)
-                                val phoneType = getPhoneType(cellDetails.phoneType)
 
                                 _uiState.update { it.copy(
                                     cellDetailsState = it.cellDetailsState.copy(
                                         dataState = dataState,
                                         dataActivity = dataActivity,
-                                        roaming = roaming,
-                                        simState = simState,
-                                        simName = cellDetails.simName ?: "N/A",
-                                        simMccMnc = cellDetails.simMccMnc ?: "N/A",
-                                        operatorName = cellDetails.operatorName ?: "N/A",
-                                        networkType = networkType,
-                                        phoneType = phoneType
+                                        roaming = roaming
                                     )
                                 ) }
 
@@ -121,6 +145,14 @@ class InfoVM @Inject constructor(
                             }
                         }
                     }
+                }
+            }
+
+            connectivityManagerRepository.getCellDataState().collect { state ->
+                if (state == TelephonyManager.DATA_CONNECTED) {
+                    Log.i("INFOVM", "Connected")
+                } else if (state == TelephonyManager.DATA_DISCONNECTED) {
+                    Log.i("INFOVM", "Disconnected")
                 }
             }
         }
