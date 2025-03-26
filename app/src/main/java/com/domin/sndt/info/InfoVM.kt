@@ -1,7 +1,6 @@
 package com.domin.sndt.info
 
 import android.telephony.TelephonyManager
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.domin.sndt.core.domain.repo.ConnectivityManagerRepository
@@ -23,57 +22,31 @@ class InfoVM @Inject constructor(
         viewModelScope.launch {
             connectivityManagerRepository.getCellSignalStrength { dbm ->
                 if (dbm != null) {
-                    viewModelScope.launch {
-                        val cellDetails = connectivityManagerRepository.getCellDetails()
-                        val dataState = if (cellDetails.dataState == TelephonyManager.DATA_CONNECTED) "Connected"
-                        else "Disconnected"
-                        val dataActivity = getDataActivity(cellDetails.dataActivity)
-                        val roaming = if (cellDetails.roaming) "Yes" else "No"
-                        val simState = getSimState(cellDetails.simState)
-                        val networkType = getNetworkTypeName(cellDetails.networkType)
-                        val phoneType = getPhoneType(cellDetails.phoneType)
-
-                        _uiState.update { it.copy(
-                            cellDetailsState = it.cellDetailsState.copy(
-                                dataState = dataState,
-                                dataActivity = dataActivity,
-                                roaming = roaming,
-                                simState = simState,
-                                simName = cellDetails.simName ?: "N/A",
-                                simMccMnc = cellDetails.simMccMnc ?: "N/A",
-                                operatorName = cellDetails.operatorName ?: "N/A",
-                                networkType = networkType,
-                                phoneType = phoneType
-                            )
-                        ) }
-
-                        _uiState.update { it.copy(
-                            cellDetailsState = it.cellDetailsState.copy(signalStrength = dbm.toString())
-                        ) }
-                    }
+                    _uiState.update { it.copy(
+                        cellDetailsState = it.cellDetailsState.copy(signalStrength = dbm.toString())
+                    ) }
                 }
             }
 
-            connectivityManagerRepository.getActiveConnection { type, network ->
-                viewModelScope.launch {
-                    var connectionDetails: Pair<ActiveConnection, ConnectionInfo>? = null
-                    if (type == "Wi-Fi") connectionDetails = connectivityManagerRepository.getConnectionDetails(network)
-                    else if (type == "Cell") connectionDetails = connectivityManagerRepository.getConnectionDetails(network)
+            updateCellDetailsState()
 
-                    if (connectionDetails != null) {
-                        val activeConnection = connectionDetails.first
-                        val connectionInfo = connectionDetails.second
+            connectivityManagerRepository.networkCallback { network ->
+                if (network != null) {
+                    viewModelScope.launch {
+                        val connectionDetails = connectivityManagerRepository.getConnectionDetails(network)
+                        if (connectionDetails != null) {
+                            val activeConnection = connectionDetails.first
+                            val connectionInfo = connectionDetails.second
 
-                        _uiState.update { it.copy(
-                            activeConnectionState = ActiveConnectionState(
-                                activeConnection.connectionType ?: "N/A",
-                                activeConnection.externalIp ?: "N/A",
-                                activeConnection.externalIpv6 ?: "N/A",
-                                activeConnection.httpProxy ?: "N/A"
-                            )
-                        ) }
+                            _uiState.update { it.copy(
+                                activeConnectionState = ActiveConnectionState(
+                                    activeConnection.connectionType ?: "N/A",
+                                    activeConnection.externalIp ?: "N/A",
+                                    activeConnection.externalIpv6 ?: "N/A",
+                                    activeConnection.httpProxy ?: "N/A"
+                                )
+                            ) }
 
-                        if (activeConnection.connectionType == "Wi-Fi") {
                             _uiState.update { it.copy(
                                 wifiInfoState = WifiInfoState(
                                     connectionInfo.ipv4Address ?: "N/A",
@@ -83,78 +56,71 @@ class InfoVM @Inject constructor(
                                     connectionInfo.ipv6Address ?: "N/A",
                                     connectionInfo.gatewayIpv6 ?: "N/A",
                                     connectionInfo.dnsServerIpv6 ?: "N/A"
-                                ),
-                                activeConnectionList = it.activeConnectionList + type
+                                )
                             ) }
-                        } else if (activeConnection.connectionType == "Cell") {
+
+                            if ("Wi-Fi" !in _uiState.value.activeConnectionList) {
+                                _uiState.update { it.copy(
+                                    activeConnectionList = it.activeConnectionList + "Wi-Fi"
+                                ) }
+                            }
+
+                            val wifiDetails = connectivityManagerRepository.getWifiDetails()
+                            val dhcpLeaseTime = wifiDetails.dhcpLeaseTime?.toString()
                             _uiState.update { it.copy(
-                                cellInfoState = CellInfoState(
-                                    connectionInfo.ipv4Address ?: "N/A",
-                                    connectionInfo.subnetMask ?: "N/A",
-                                    connectionInfo.gatewayIpv4 ?: "N/A",
-                                    connectionInfo.dnsServerIpv4 ?: "N/A",
-                                    connectionInfo.ipv6Address ?: "N/A",
-                                    connectionInfo.gatewayIpv6 ?: "N/A",
-                                    connectionInfo.dnsServerIpv6 ?: "N/A"
-                                ),
-                                activeConnectionList = it.activeConnectionList + type
+                                wifiDetailsState = WifiDetailsState(
+                                    wifiDetails.wifiEnabled.toString(),
+                                    wifiDetails.connectionState ?: "N/A",
+                                    dhcpLeaseTime,
+                                    wifiDetails.ssid ?: "N/A",
+                                    wifiDetails.bssid ?: "N/A",
+                                    wifiDetails.channel ?: "N/A",
+                                    wifiDetails.speed ?: "N/A",
+                                    wifiDetails.signalStrength ?: "N/A"
+                                )
                             ) }
-                        }
 
-                        Log.i("INFOVM",_uiState.value.activeConnectionList.toString())
-
-                        when (type) {
-                            "Wi-Fi" -> {
-                                val wifiDetails = connectivityManagerRepository.getWifiDetails()
-                                val dhcpLeaseTime = wifiDetails.dhcpLeaseTime?.toString()
-                                _uiState.update { it.copy(
-                                    wifiDetailsState = WifiDetailsState(
-                                        wifiDetails.wifiEnabled.toString(),
-                                        wifiDetails.connectionState ?: "N/A",
-                                        dhcpLeaseTime,
-                                        wifiDetails.ssid ?: "N/A",
-                                        wifiDetails.bssid ?: "N/A",
-                                        wifiDetails.channel ?: "N/A",
-                                        wifiDetails.speed ?: "N/A",
-                                        wifiDetails.signalStrength ?: "N/A"
-                                    )
-                                ) }
-                            }
-                            "Cell" -> {
-                                val cellDetails = connectivityManagerRepository.getCellDetails()
-                                val dataState = if (cellDetails.dataState == TelephonyManager.DATA_CONNECTED) "Connected"
-                                else "Disconnected"
-                                val dataActivity = getDataActivity(cellDetails.dataActivity)
-                                val roaming = if (cellDetails.roaming) "Yes" else "No"
-
-                                _uiState.update { it.copy(
-                                    cellDetailsState = it.cellDetailsState.copy(
-                                        dataState = dataState,
-                                        dataActivity = dataActivity,
-                                        roaming = roaming
-                                    )
-                                ) }
-
-                                connectivityManagerRepository.getCellSignalStrength { dbm ->
-                                    if (dbm != null) {
-                                        _uiState.update { it.copy(
-                                            cellDetailsState = it.cellDetailsState.copy(signalStrength = dbm.toString())
-                                        ) }
-                                    }
-                                }
-                            }
                         }
                     }
+                } else {
+                    val newList = _uiState.value.activeConnectionList.toMutableList()
+                    newList.remove("Wi-Fi")
+                    _uiState.update { it.copy(
+                        activeConnectionList = newList
+                    ) }
                 }
             }
 
             connectivityManagerRepository.getCellDataState().collect { state ->
-                if (state == TelephonyManager.DATA_CONNECTED) {
-                    Log.i("INFOVM", "Connected")
-                } else if (state == TelephonyManager.DATA_DISCONNECTED) {
-                    Log.i("INFOVM", "Disconnected")
-                }
+                updateCellDetailsState()
             }
+        }
+    }
+
+    private fun updateCellDetailsState() {
+        viewModelScope.launch {
+            val cellDetails = connectivityManagerRepository.getCellDetails()
+            val dataState = if (cellDetails.dataState == TelephonyManager.DATA_CONNECTED) "Connected"
+            else "Disconnected"
+            val dataActivity = getDataActivity(cellDetails.dataActivity)
+            val roaming = if (cellDetails.roaming) "Yes" else "No"
+            val simState = getSimState(cellDetails.simState)
+            val networkType = getNetworkTypeName(cellDetails.networkType)
+            val phoneType = getPhoneType(cellDetails.phoneType)
+
+            _uiState.update { it.copy(
+                cellDetailsState = it.cellDetailsState.copy(
+                    dataState = dataState,
+                    dataActivity = dataActivity,
+                    roaming = roaming,
+                    simState = simState,
+                    simName = cellDetails.simName ?: "N/A",
+                    simMccMnc = cellDetails.simMccMnc ?: "N/A",
+                    operatorName = cellDetails.operatorName ?: "N/A",
+                    networkType = networkType,
+                    phoneType = phoneType
+                )
+            ) }
         }
     }
 

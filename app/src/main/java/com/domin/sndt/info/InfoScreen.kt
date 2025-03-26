@@ -24,7 +24,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.domin.sndt.info.components.ActiveConnectionCard
-import com.domin.sndt.info.components.CellConnectionInfoCard
 import com.domin.sndt.info.components.CellDetailsCard
 import com.domin.sndt.info.components.WifiConnectionInfoCard
 import com.domin.sndt.info.components.WifiDetailsCard
@@ -66,17 +65,6 @@ fun InfoScreen(vm: InfoVM = viewModel()) {
             )
 
             WifiConnectionInfoCard(state.wifiInfoState)
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-
-        if ("Cell" in state.activeConnectionList) {
-            Text(
-                text = "CELL CONNECTION",
-                style = MaterialTheme.typography.titleSmall
-            )
-
-            CellConnectionInfoCard(state.cellInfoState)
 
             Spacer(modifier = Modifier.height(24.dp))
         }

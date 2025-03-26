@@ -7,26 +7,6 @@ data class ActiveConnection(
     val httpProxy: String?
 )
 
-data class WifiConnectionInfo(
-    val ipv4Address: String?,
-    val subnetMask: String?,
-    val gatewayIpv4: String?,
-    val dnsServerIpv4: String?,
-    val ipv6Address: String?,
-    val gatewayIpv6: String?,
-    val dnsServerIpv6: String?
-)
-
-data class CellConnectionInfo(
-    val ipv4Address: String?,
-    val subnetMask: String?,
-    val gatewayIpv4: String?,
-    val dnsServerIpv4: String?,
-    val ipv6Address: String?,
-    val gatewayIpv6: String?,
-    val dnsServerIpv6: String?
-)
-
 data class ConnectionInfo(
     val ipv4Address: String?,
     val subnetMask: String?,

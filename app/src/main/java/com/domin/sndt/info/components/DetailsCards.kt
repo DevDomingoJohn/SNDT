@@ -14,9 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.domin.sndt.info.ActiveConnectionState
 import com.domin.sndt.info.CellDetailsState
-import com.domin.sndt.info.CellInfoState
-import com.domin.sndt.info.ConnectionInfoState
-import com.domin.sndt.info.WifiConnectionInfo
 import com.domin.sndt.info.WifiDetailsState
 import com.domin.sndt.info.WifiInfoState
 
@@ -68,75 +65,6 @@ fun ActiveConnectionCard(
 @Composable
 fun WifiConnectionInfoCard(
     state: WifiInfoState
-) {
-    Card(
-        shape = RoundedCornerShape(8.dp)
-    ) {
-        Column(
-            Modifier.padding(8.dp)
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "IPv4 Address")
-                Text(text = state.ipv4Address)
-            }
-            HorizontalDivider()
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Subnet Mask")
-                Text(text = state.subnetMask)
-            }
-            HorizontalDivider()
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Gateway IPv4")
-                Text(text = state.gatewayIpv4)
-            }
-            HorizontalDivider()
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "DNS Server IPv4")
-                Text(text = state.dnsServerIpv4)
-            }
-            HorizontalDivider()
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "IPv6 Address")
-                Text(text = state.ipv6Address)
-            }
-            HorizontalDivider()
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "Gateway IPv6")
-                Text(text = state.gatewayIpv6)
-            }
-            HorizontalDivider()
-            Row(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(text = "DNS Server IPv6")
-                Text(text = state.dnsServerIpv6)
-            }
-        }
-    }
-}
-
-@Composable
-fun CellConnectionInfoCard(
-    state: CellInfoState
 ) {
     Card(
         shape = RoundedCornerShape(8.dp)

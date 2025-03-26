@@ -17,26 +17,6 @@ data class WifiInfoState(
     val dnsServerIpv6: String = "N/A",
 )
 
-data class CellInfoState(
-    val ipv4Address: String = "N/A",
-    val subnetMask: String = "N/A",
-    val gatewayIpv4: String = "N/A",
-    val dnsServerIpv4: String = "N/A",
-    val ipv6Address: String = "N/A",
-    val gatewayIpv6: String = "N/A",
-    val dnsServerIpv6: String = "N/A",
-)
-
-data class ConnectionInfoState(
-    val ipv4Address: String = "N/A",
-    val subnetMask: String = "N/A",
-    val gatewayIpv4: String = "N/A",
-    val dnsServerIpv4: String = "N/A",
-    val ipv6Address: String = "N/A",
-    val gatewayIpv6: String = "N/A",
-    val dnsServerIpv6: String = "N/A",
-)
-
 data class WifiDetailsState(
     val wifiEnabled: String = "No",
     val connectionState: String = "Disconnected",

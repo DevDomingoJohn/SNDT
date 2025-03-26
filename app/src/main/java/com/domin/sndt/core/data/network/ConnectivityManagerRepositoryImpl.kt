@@ -28,7 +28,6 @@ import com.domin.sndt.core.domain.repo.ConnectivityManagerRepository
 import com.domin.sndt.info.ActiveConnection
 import com.domin.sndt.info.CellDetails
 import com.domin.sndt.info.ConnectionInfo
-import com.domin.sndt.info.WifiConnectionInfo
 import com.domin.sndt.info.WifiDetails
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -45,22 +44,29 @@ class ConnectivityManagerRepositoryImpl(
     private val ipifyRepositoryImpl: IpifyRepositoryImpl
 ): ConnectivityManagerRepository {
 
-    override suspend fun getActiveConnection(callback: (String, Network) -> Unit) {
+    override suspend fun networkCallback(callback: (Network?) -> Unit) {
         val networkListener = object: NetworkCallback() {
+
+            override fun onLost(network: Network) {
+                super.onLost(network)
+                Log.i("CMRI","onLost Wifi")
+                callback(null)
+            }
 
             override fun onAvailable(network: Network) {
                 super.onAvailable(network)
                 val capabilities = connectivityManager.getNetworkCapabilities(network)
                 capabilities?.let {
-                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) callback("Wi-Fi", network)
-                    else if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) callback("Cell", network)
+                    if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                        Log.i("CMRI","onAvailable Wifi")
+                        callback(network)
+                    }
                 }
             }
         }
 
         connectivityManager.registerNetworkCallback(
             NetworkRequest.Builder()
-                .addTransportType(NetworkCapabilities.TRANSPORT_CELLULAR)
                 .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
                 .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 .build(),
@@ -71,7 +77,6 @@ class ConnectivityManagerRepositoryImpl(
     override suspend fun getWifiDetails(): WifiDetails {
         val network = connectivityManager.activeNetwork
         val networkCapabilities = connectivityManager.getNetworkCapabilities(network)!!
-
         val isWifiEnabled = wifiManager.isWifiEnabled
         val connectionState = "Connected"
         val ssid: String?
@@ -191,78 +196,42 @@ class ConnectivityManagerRepositoryImpl(
     }
 
     override suspend fun getCellDataState(): Flow<Int> = callbackFlow {
-        val phoneStateListener = object : PhoneStateListener() {
-            override fun onDataConnectionStateChanged(
-                state: Int,
-                networkType: Int
-            ) {
-                super.onDataConnectionStateChanged(state, networkType)
-                trySend(state)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val dataStateCallback = object : TelephonyCallback(), TelephonyCallback.DataConnectionStateListener {
+                override fun onDataConnectionStateChanged(
+                    state: Int,
+                    networkType: Int
+                ) {
+                    trySend(state)
+                }
+            }
+
+            telephonyManager.registerTelephonyCallback(context.mainExecutor,dataStateCallback)
+
+            awaitClose {
+                telephonyManager.unregisterTelephonyCallback(dataStateCallback)
+            }
+        } else {
+            val phoneStateListener = object : PhoneStateListener() {
+
+                override fun onDataConnectionStateChanged(
+                    state: Int,
+                    networkType: Int
+                ) {
+                    super.onDataConnectionStateChanged(state, networkType)
+                    trySend(state)
+                }
+            }
+
+            telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_DATA_CONNECTION_STATE)
+
+            awaitClose {
+                telephonyManager.listen(
+                    phoneStateListener,
+                    PhoneStateListener.LISTEN_NONE
+                )
             }
         }
-
-        telephonyManager.listen(phoneStateListener, PhoneStateListener.LISTEN_DATA_CONNECTION_STATE)
-
-        awaitClose {
-            telephonyManager.listen(
-                phoneStateListener,
-                PhoneStateListener.LISTEN_NONE
-            )
-        }
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-//            val dataStateCallback = object : TelephonyCallback(), TelephonyCallback.DataConnectionStateListener {
-//                override fun onDataConnectionStateChanged(
-//                    state: Int,
-//                    networkType: Int
-//                ) {
-//                    callback(state)
-//                }
-//            }
-//
-//            telephonyManager.registerTelephonyCallback(context.mainExecutor,dataStateCallback)
-//        } else {
-//
-//        }
-    }
-
-    private suspend fun getWifiConnectionInfo(network: Network): WifiConnectionInfo {
-        val linkProperties = connectivityManager.getLinkProperties(network)!!
-        var gatewayIpv4: String? = null
-        var gatewayIpv6: String? = null
-        var dnsIpv4: String? = null
-        var dnsIpv6: String? = null
-
-        for (route in linkProperties.routes) {
-            val gateway = route.gateway
-            if (gateway != null && route.isDefaultRoute && !gateway.isLoopbackAddress) {
-                if (gateway is Inet4Address)
-                    gatewayIpv4 = route.gateway?.hostAddress
-                if (gateway is Inet6Address)
-                    gatewayIpv6 = route.gateway?.hostAddress
-            }
-        }
-
-        for (dns in linkProperties.dnsServers) {
-            if (dns is Inet4Address && !dns.isLoopbackAddress)
-                dnsIpv4 = dns.hostAddress
-            if (dns is Inet6Address && !dns.isLoopbackAddress)
-                dnsIpv6 = dns.hostAddress
-        }
-
-        val ipv4Address = networkInterfaceRepository.getLocalIp() ?: "N/A"
-        val subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
-        val ipv6Address = networkInterfaceRepository.getIpv6() ?: "N/A"
-
-        return WifiConnectionInfo(ipv4Address,subnetMask,gatewayIpv4,dnsIpv4,ipv6Address,gatewayIpv6,dnsIpv6)
-    }
-
-    private suspend fun getCellConnectionInfo(network: Network) {
-        val linkProperties = connectivityManager.getLinkProperties(network)
-        val cellularInterfaceName = linkProperties?.interfaceName!!
-
-        val subnetMask = networkInterfaceRepository.getCellSubnet(cellularInterfaceName)
-
-        Log.i("getCellInfo","Subnet: $subnetMask")
     }
 
     private suspend fun getConnectionInfo(network: Network): ConnectionInfo {
@@ -292,12 +261,7 @@ class ConnectivityManagerRepositoryImpl(
         }
 
         networkCapabilities?.let {
-            if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                subnetMask = networkInterfaceRepository.getSubnet() ?: "N/A"
-            } else if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                val cellularInterfaceName = linkProperties.interfaceName!!
-                subnetMask = networkInterfaceRepository.getCellSubnet(cellularInterfaceName)
-            }
+            subnetMask = networkInterfaceRepository.getSubnet()
         }
 
         val ipv4Address = networkInterfaceRepository.getLocalIp() ?: "N/A"
@@ -319,27 +283,11 @@ class ConnectivityManagerRepositoryImpl(
                 publicIpv4 = ipifyRepositoryImpl.getPublicIpv4()
                 publicIpv6 = ipifyRepositoryImpl.getPublicIpv6()
                 httpProxy = linkProperties?.httpProxy?.host
-            } else if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                publicIpv4 = ipifyRepositoryImpl.getPublicIpv4()
-                publicIpv6 = ipifyRepositoryImpl.getPublicIpv6()
-                httpProxy = linkProperties?.httpProxy?.host
             }
 
             if (it.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
                 val activeConnection = ActiveConnection("Wi-Fi",publicIpv4,publicIpv6,httpProxy)
-                val connectionInfo = getConnectionInfo(network!!)
-                return Pair(activeConnection,connectionInfo)
-            }
-
-            if (it.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                val activeConnection = ActiveConnection("Cell",publicIpv4,publicIpv6,httpProxy)
-                val connectionInfo = getConnectionInfo(network!!)
-                return Pair(activeConnection,connectionInfo)
-            }
-
-            if (it.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-                val activeConnection = ActiveConnection("Ethernet",publicIpv4,publicIpv6,httpProxy)
-                val connectionInfo = getConnectionInfo(network!!)
+                val connectionInfo = getConnectionInfo(network)
                 return Pair(activeConnection,connectionInfo)
             }
         }
