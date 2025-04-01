@@ -8,10 +8,14 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.domin.sndt.core.components.NavigationDrawer
 import com.domin.sndt.info.InfoScreen
 import com.domin.sndt.scan.ScanScreen
 import com.domin.sndt.ui.theme.SNDTTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.serialization.Serializable
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -20,8 +24,20 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SNDTTheme {
-                requestReadPhoneState()
-                InfoScreen()
+                NavigationDrawer { drawerState, navController ->
+                    NavHost(
+                        navController = navController,
+                        startDestination = InfoScreen
+                    ) {
+                        composable<InfoScreen> {
+                            requestReadPhoneState()
+                            InfoScreen(drawerState = drawerState)
+                        }
+                        composable<ScanScreen> {
+                            ScanScreen(drawerState = drawerState)
+                        }
+                    }
+                }
             }
         }
     }
@@ -33,3 +49,12 @@ class MainActivity : ComponentActivity() {
     }
 
 }
+
+@Serializable
+data object InfoScreen
+
+@Serializable
+data object ScanScreen
+
+@Serializable
+data object ToolsScreen
