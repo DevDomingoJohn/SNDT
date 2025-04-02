@@ -21,7 +21,7 @@ class ScanVM @Inject constructor(
     private val _isScanning = MutableStateFlow(false)
     val isScanning = _isScanning.asStateFlow()
 
-    fun test() {
+    fun scanNetwork() {
         viewModelScope.launch {
             networkInterfaceRepository.scanNetwork(
                 deviceReached = { device ->

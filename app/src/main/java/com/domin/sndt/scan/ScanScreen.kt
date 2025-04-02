@@ -3,14 +3,9 @@ package com.domin.sndt.scan
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -44,16 +39,10 @@ fun ScanScreen(
     val isScanning by vm.isScanning.collectAsState()
     val coroutine = rememberCoroutineScope()
 
-    if (isScanning) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-    }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Information") },
+                title = { Text("Lan Scan") },
                 navigationIcon = {
                     IconButton(
                         onClick = { coroutine.launch { drawerState.drawerState.open() } }
@@ -64,18 +53,18 @@ fun ScanScreen(
             )
         }
     ) { padding ->
+        if (isScanning) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .windowInsetsPadding(
-                    WindowInsets(
-                        top = WindowInsets.systemBars.asPaddingValues().calculateTopPadding(),
-                        bottom = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
-                    )
-                )
         ) {
             LazyColumn(
                 modifier = Modifier
@@ -88,8 +77,9 @@ fun ScanScreen(
                 }
             }
             Button(
+                enabled = !isScanning,
                 onClick = {
-                    vm.test()
+                    vm.scanNetwork()
                 }
             ) {
                 Text("Scan Network")

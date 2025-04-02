@@ -82,7 +82,9 @@ fun NavigationDrawer(
                             coroutine.launch {
                                 state.drawerState.close()
                             }
-                            navController.navigate(item.route)
+                            navController.navigate(item.route) {
+                                popUpTo(0)
+                            }
                         },
                         modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                     )
