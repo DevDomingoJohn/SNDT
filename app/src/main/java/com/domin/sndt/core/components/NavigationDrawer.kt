@@ -68,7 +68,7 @@ fun NavigationDrawer(
         drawerContent = {
             ModalDrawerSheet {
                 Text(
-                    text = "Esterd",
+                    text = "SNDT",
                     style = MaterialTheme.typography.titleSmall,
                     modifier = Modifier.padding(16.dp)
                 )

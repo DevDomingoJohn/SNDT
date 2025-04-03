@@ -78,20 +78,6 @@ class NetworkInterfaceRepositoryImpl(
         return null
     }
 
-    override suspend fun getCellSubnet(interfaceName: String): String? {
-        val networkInterface = NetworkInterface.getByName(interfaceName)
-        val interfaceAddresses = networkInterface.interfaceAddresses
-        for (interfaceAddress in interfaceAddresses) {
-            val address = interfaceAddress.address
-            if (address is Inet4Address) {
-                val prefixLength = interfaceAddress.networkPrefixLength
-                return prefixLengthToSubnetMask(prefixLength)
-            }
-        }
-
-        return null
-    }
-
     private fun getCurrentDeviceMac(inetAddress: InetAddress): String? {
         val netInterface = NetworkInterface.getByInetAddress(inetAddress) ?: return null
         val macAddressBytes = netInterface.hardwareAddress
@@ -187,32 +173,37 @@ class NetworkInterfaceRepositoryImpl(
         return InetAddress.getByAddress(ipBytes)
     }
 
-    override suspend fun scanNetwork(deviceReached: (Device) -> Unit, isScanning: (Boolean) -> Unit) {
+    override suspend fun scanNetwork(deviceReached: (Device) -> Unit, isScanning: (Boolean) -> Unit, onError: (Boolean) -> Unit) {
         withContext(Dispatchers.IO) {
             isScanning(true)
+            try {
+                onError(false)
+                val localIp = getLocalIp()!!
+                val subnetMask = getSubnet()!!
 
-            val localIp = getLocalIp()!!
-            val subnetMask = getSubnet()!!
+                val networkAddressInt = calculateNetworkAddress(localIp,subnetMask)
+                val broadcastAddressInt = calculateBroadcastAddress(networkAddressInt,subnetMask)
 
-            val networkAddressInt = calculateNetworkAddress(localIp,subnetMask)
-            val broadcastAddressInt = calculateBroadcastAddress(networkAddressInt,subnetMask)
+                for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
+                    val address = integerToInetAddress(ipInt)
+                    delay(100)
+                    launch {
+                        if (address.isReachable(1000)) {
+                            val hostAddress = address.hostAddress!!
+                            val label = if (hostAddress == localIp) "This Device" else null
+                            val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
+                            val vendor = macLookupRepositoryImpl.getVendorByMac(macAddress)
 
-            for (ipInt in networkAddressInt + 1 .. broadcastAddressInt - 1) {
-                val address = integerToInetAddress(ipInt)
-                delay(100)
-                launch {
-                    if (address.isReachable(1000)) {
-                        val hostAddress = address.hostAddress!!
-                        val label = if (hostAddress == localIp) "This Device" else null
-                        val macAddress = if (hostAddress == localIp) getCurrentDeviceMac(address) else getMacAddress(hostAddress)
-                        val vendor = macLookupRepositoryImpl.getVendorByMac(macAddress)
-
-                        deviceReached(Device(label,hostAddress,macAddress,vendor))
+                            deviceReached(Device(label,hostAddress,macAddress,vendor))
+                        }
                     }
                 }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                onError(true)
+            } finally {
+                isScanning(false)
             }
-
-            isScanning(false)
         }
     }
 }

@@ -33,6 +33,10 @@ class InfoVM @Inject constructor(
             connectivityManagerRepository.networkCallback { network ->
                 if (network != null) {
                     viewModelScope.launch {
+                        _uiState.update { it.copy(
+                            isFetching = true
+                        ) }
+
                         val connectionDetails = connectivityManagerRepository.getConnectionDetails(network)
                         if (connectionDetails != null) {
                             val activeConnection = connectionDetails.first
@@ -79,13 +83,17 @@ class InfoVM @Inject constructor(
                                     wifiDetails.signalStrength ?: "N/A"
                                 )
                             ) }
-
                         }
+
+                        _uiState.update { it.copy(
+                            isFetching = false
+                        ) }
                     }
                 } else {
                     val newList = _uiState.value.activeConnectionList.toMutableList()
                     newList.remove("Wi-Fi")
                     _uiState.update { it.copy(
+                        activeConnectionState = ActiveConnectionState(),
                         activeConnectionList = newList
                     ) }
                 }

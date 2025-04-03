@@ -25,6 +25,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.domin.sndt.core.components.NavigationDrawerState
 import kotlinx.coroutines.launch
@@ -37,6 +39,7 @@ fun ScanScreen(
 ) {
     val state by vm.state.collectAsState()
     val isScanning by vm.isScanning.collectAsState()
+    val isError by vm.isError.collectAsState()
     val coroutine = rememberCoroutineScope()
 
     Scaffold(
@@ -53,12 +56,6 @@ fun ScanScreen(
             )
         }
     ) { padding ->
-        if (isScanning) {
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator()
-            }
-        }
-
         Column(
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -66,6 +63,14 @@ fun ScanScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            if (isError) {
+                Text(
+                    text = "No Wi-Fi Connection",
+                    fontSize = 18.sp,
+                    color = Color.Red
+                )
+            }
+
             LazyColumn(
                 modifier = Modifier
                     .weight(1f)
@@ -83,6 +88,12 @@ fun ScanScreen(
                 }
             ) {
                 Text("Scan Network")
+            }
+        }
+
+        if (isScanning) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
             }
         }
     }

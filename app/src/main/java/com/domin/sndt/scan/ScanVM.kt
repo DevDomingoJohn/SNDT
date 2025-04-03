@@ -3,6 +3,7 @@ package com.domin.sndt.scan
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.domin.sndt.core.domain.repo.NetworkInterfaceRepository
+import com.domin.sndt.info.UIState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,9 @@ class ScanVM @Inject constructor(
     private val _isScanning = MutableStateFlow(false)
     val isScanning = _isScanning.asStateFlow()
 
+    private val _isError = MutableStateFlow(false)
+    val isError = _isError.asStateFlow()
+
     fun scanNetwork() {
         viewModelScope.launch {
             networkInterfaceRepository.scanNetwork(
@@ -29,6 +33,9 @@ class ScanVM @Inject constructor(
                 },
                 isScanning = { isScanning ->
                     _isScanning.update { isScanning }
+                },
+                onError = { error ->
+                    _isError.update { error }
                 }
             )
         }

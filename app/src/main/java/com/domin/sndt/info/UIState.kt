@@ -5,5 +5,6 @@ data class UIState(
     val wifiInfoState: WifiInfoState = WifiInfoState(),
     val wifiDetailsState: WifiDetailsState = WifiDetailsState(),
     val cellDetailsState: CellDetailsState = CellDetailsState(),
-    val activeConnectionList: List<String> = emptyList<String>()
+    val activeConnectionList: List<String> = emptyList<String>(),
+    val isFetching: Boolean = false
 )
